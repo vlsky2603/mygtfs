@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Winnipeg Transit Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="map"></div>
+    <div id="loading">
+        <div class="spinner"></div>
+        <span>Loading stops...</span>
+    </div>
+    
+    <div id="header-controls">
+        <button id="filter-toggle" class="control-button">
+            <i class="fas fa-filter"></i>
+            <span id="active-filters"></span>
+        </button>
+        <button id="location-button" class="control-button">
+            <i class="fas fa-location-arrow"></i>
+        </button>
+        <button id="theme-toggle" class="control-button">
+            <i class="fas fa-moon"></i>
+        </button>
+    </div>
+    
+    <div id="filter-panel">
+        <div class="panel-header">
+            <h3>Filters</h3>
+            <div class="panel-actions">
+                <button id="reset-filters">Reset</button>
+                <button id="close-filters"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="panel-content">
+            <div class="filter-group">
+                <label>Direction</label>
+                <select id="direction-filter">
+                    <option value="">All Directions</option>
+                    <option value="Northbound">Northbound</option>
+                    <option value="Southbound">Southbound</option>
+                    <option value="Eastbound">Eastbound</option>
+                    <option value="Westbound">Westbound</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Street</label>
+                <div class="search-container">
+                    <input type="text" id="street-search" placeholder="Search streets...">
+                    <select id="street-filter">
+                        <option value="">All Streets</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="schedule-panel">
+        <div class="panel-header">
+            <h3>Schedule</h3>
+            <button id="close-schedule"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="panel-content">
+            <div class="schedule-content"></div>
+        </div>
+    </div>
+    
+    <div id="radius-label">400 m</div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="main_dynamic.js"></script>
+</body>
+</html>
