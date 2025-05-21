@@ -37,6 +37,13 @@
             </div>
         </div>
         <div class="panel-content">
+            <!-- GTFS Route Filter -->
+            <div class="filter-group">
+                <label for="route-filter" style="margin-top:10px;">Route (GTFS):</label>
+                <select id="route-filter">
+                    <option value="">All Routes</option>
+                </select>
+            </div>
             <div class="filter-group">
                 <label>Direction</label>
                 <select id="direction-filter">
@@ -65,6 +72,10 @@
             <button id="close-schedule"><i class="fas fa-times"></i></button>
         </div>
         <div class="panel-content">
+            <div class="legend-modern" style="margin-bottom:10px;">
+                <span class="arrival-badge confirmed">Live</span>
+                <span class="arrival-badge gtfs">Schedule</span>
+            </div>
             <div class="schedule-content"></div>
         </div>
     </div>
