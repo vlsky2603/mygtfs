@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Tests</title>
+    <link rel="stylesheet" href="https://code.jquery.com/qunit/qunit-2.20.0.css">
+    <style>
+        /* Hide the map during tests, but ensure it exists for main_dynamic.js initialization */
+        #map {
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            position: absolute;
+            top: -10px;
+            left: -10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="qunit"></div>
+    <div id="qunit-fixture">
+        <!-- Fixture for DOM elements needed by showSchedule -->
+        <div id="schedule-panel">
+            <div class="schedule-content"></div>
+        </div>
+        <div id="map"></div> <!-- main_dynamic.js initializes map here -->
+         <!-- Other elements if main_dynamic.js interacts with them globally on load -->
+        <button id="filter-toggle"></button>
+        <div id="filter-panel"></div>
+        <button id="close-filters"></button>
+        <button id="reset-filters"></button>
+        <select id="direction-filter"></select>
+        <input id="street-search" />
+        <select id="street-filter"></select>
+        <div id="active-filters"></div>
+        <button id="location-button"></button>
+        <button id="theme-toggle"></button>
+        <button id="close-schedule"></button>
+        <div id="loading"></div>
+    </div>
+
+    <script src="https://code.jquery.com/qunit/qunit-2.20.0.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sinon.js/14.0.0/sinon.min.js"></script> <!-- Added Sinon.JS -->
+    
+    <!-- Leaflet - needed by main_dynamic.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Main script to be tested -->
+    <!-- Ensure API_BASE is defined if not already in main_dynamic.js for some reason -->
+    <script> const API_BASE = 'http://localhost:8080'; </script>
+    <script src="main_dynamic.js"></script>
+
+    <!-- Test script -->
+    <script src="tests.js"></script>
+</body>
+</html>
