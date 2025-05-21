@@ -1,0 +1,159 @@
+route_long_name,route_type,route_text_color,route_color,agency_id,route_id,route_url,route_short_name,route_sort_order
+Taylor - West Taylor,3,052465,FFFFFF,,664,https://winnipegtransit.com/routes/664,664,664
+McGillivray,3,052465,FFFFFF,,650_merged_67221,https://winnipegtransit.com/routes/650,650,650
+Regent - Grant,3,FFFFFF,F27EA6,,FX3,https://winnipegtransit.com/routes/FX3,FX3,472127081
+Chevrier,3,052465,FFFFFF,,649_merged_67218,https://winnipegtransit.com/routes/649,649,649
+Richmond,3,052465,FFFFFF,,662_merged_67203,https://winnipegtransit.com/routes/662,662,662
+Main - St. Mary's,3,FFFFFF,F37043,,FX2,https://winnipegtransit.com/routes/FX2,FX2,472123600
+Ness Express,3,000000,EED700,,24,https://winnipegtransit.com/routes/24,24,24
+Waverley Heights,3,FFFFFF,000000,,693,https://winnipegtransit.com/routes/693,693,693
+Logan - Berry,3,000000,FFFFFF,,26,https://winnipegtransit.com/routes/26,26,26
+Sherwin - Valour,3,052465,FFFFFF,,224,https://winnipegtransit.com/routes/224,224,224
+Academy-Watt,3,000000,FFFFFF,,20,https://winnipegtransit.com/routes/20,20,20
+Portage Express,3,000000,EED700,,21,https://winnipegtransit.com/routes/21,21,21
+Broadway - William,3,000000,FFFFFF,,23,https://winnipegtransit.com/routes/23,23,23
+Charleswood - Cavalier,3,052465,FFFFFF,,223,https://winnipegtransit.com/routes/223,223,223
+Sherbrook - Stafford,3,000000,FFFFFF,,29,https://winnipegtransit.com/routes/29,29,29
+Crestview - Westwood,3,052465,FFFFFF,,220,https://winnipegtransit.com/routes/220,220,220
+Whyte Ridge,3,FFFFFF,000000,,691_merged_67181,https://winnipegtransit.com/routes/691,691,691
+Waterfront - North Main,3,FFFFFF,052465,,31_merged_67215,https://winnipegtransit.com/routes/31,31,31
+Waverley West - Chancellor,3,052465,FFFFFF,,678,https://winnipegtransit.com/routes/678,678,678
+Waverley,3,052465,FFFFFF,,679,https://winnipegtransit.com/routes/679,679,679
+Keewatin Express,3,000000,EED700,,31_merged_67192,https://winnipegtransit.com/routes/31,31,31
+Munroe,3,000000,FFFFFF,,43_merged_67201,https://winnipegtransit.com/routes/43,43,43
+Kenaston,3,000000,FFFFFF,,74_merged_67202,https://winnipegtransit.com/routes/74,74,74
+Chevrier,3,000000,FFFFFF,,649_merged_67195,https://winnipegtransit.com/routes/649,649,649
+South St. Anne's Express,3,000000,EED700,,59,https://winnipegtransit.com/routes/59,59,59
+Dakota Express,3,000000,EED700,,58,https://winnipegtransit.com/routes/58,58,58
+St. Anne's,3,000000,FFFFFF,,55,https://winnipegtransit.com/routes/55,55,55
+St. Mary's Express,3,000000,EED700,,54,https://winnipegtransit.com/routes/54,54,54
+Southdale Express,3,000000,EED700,,57,https://winnipegtransit.com/routes/57,57,57
+St. Boniface,3,000000,FFFFFF,,56,https://winnipegtransit.com/routes/56,56,56
+Archibald,3,000000,FFFFFF,,50,https://winnipegtransit.com/routes/50,50,50
+Norwood,3,000000,FFFFFF,,53,https://winnipegtransit.com/routes/53,53,53
+Henderson - Pembina,3,FFFFFF,00B262,,F8,https://winnipegtransit.com/routes/F8,F8,465488814
+Lagimodiere - Abinojii Mikanah,3,FFFFFF,00B262,,F9,https://winnipegtransit.com/routes/F9,F9,465694193
+McMeans Express,3,000000,EED700,,48_merged_67200,https://winnipegtransit.com/routes/48,48,48
+Charleswood Express,3,000000,EED700,,67,https://winnipegtransit.com/routes/67,67,67
+Inkster Industrial Park - Scotia,3,000000,FFFFFF,,88,https://winnipegtransit.com/routes/88,88,88
+North Transcona - Kildonan Place,3,000000,FFFFFF,,89,https://winnipegtransit.com/routes/89,89,89
+Whyte Ridge,3,052465,FFF0D8,,691_merged_67204,https://winnipegtransit.com/routes/691,691,691
+Grace Hospital - Unicity,3,000000,FFFFFF,,82,https://winnipegtransit.com/routes/82,82,82
+Unicity - Strauss Dr - Murray Industrial Park,3,000000,FFFFFF,,83,https://winnipegtransit.com/routes/83,83,83
+Mission Gardens,3,000000,FFFFFF,,86,https://winnipegtransit.com/routes/86,86,86
+Industrial,3,000000,FFFFFF,,87,https://winnipegtransit.com/routes/87,87,87
+Kildonan Place - North Kildonan,3,000000,FFFFFF,,85,https://winnipegtransit.com/routes/85,85,85
+,3,FFFFFF,0064B1,,BLUE_merged_67207,https://winnipegtransit.com/routes/BLUE,BLUE,421313626
+McPhillips - Donald,3,FFFFFF,00B262,,F5,https://winnipegtransit.com/routes/F5,F5,464872677
+Adsum,3,000000,FFFFFF,,334_merged_67196,https://winnipegtransit.com/routes/334,334,334
+Concordia - North Kildonan,3,052465,FFFFFF,,442,https://winnipegtransit.com/routes/442,442,442
+Watson - Dr. Jose Rizal,3,052465,FFFFFF,,334_merged_67219,https://winnipegtransit.com/routes/334,334,334
+Arlington - Stafford,3,FFFFFF,052465,,28_merged_67206,https://winnipegtransit.com/routes/28,28,28
+Beliveau,3,052465,FFFFFF,,556,https://winnipegtransit.com/routes/556,556,556
+Rougeau - Plessis,3,052465,FFFFFF,,440,https://winnipegtransit.com/routes/440,440,440
+,3,FFFFFF,0060A9,,BLUE_merged_67184,https://winnipegtransit.com/routes/BLUE,BLUE,421313626
+Ness Super Express,3,000000,EED700,,25,https://winnipegtransit.com/routes/25,25,25
+Wildwood,3,FFFFFF,000000,,694_merged_67182,https://winnipegtransit.com/routes/694,694,694
+Mountain - Munroe,3,FFFFFF,052465,,38_merged_67213,https://winnipegtransit.com/routes/38,38,38
+Peguis - Donwood,3,052465,FFFFFF,,446,https://winnipegtransit.com/routes/446,446,446
+Devonshire - Redonda,3,052465,FFFFFF,,444,https://winnipegtransit.com/routes/444,444,444
+Kenaston - Keewatin,3,FFFFFF,052465,,74_merged_67225,https://winnipegtransit.com/routes/74,74,74
+Roblin,3,FFFFFF,052465,,70,https://winnipegtransit.com/routes/70,70,70
+St. Norbert,3,052465,FFFFFF,,91_merged_67222,https://winnipegtransit.com/routes/91,91,91
+St. Anne's - Provencher,3,FFFFFF,00B262,,F7,https://winnipegtransit.com/routes/F7,F7,465283435
+Maples,3,000000,FFFFFF,,33,https://winnipegtransit.com/routes/33,33,33
+North Main Express,3,000000,EED700,,32,https://winnipegtransit.com/routes/32,32,32
+Inkster Park Express,3,000000,EED700,,30,https://winnipegtransit.com/routes/30,30,30
+Jefferson,3,FFFFFF,052465,,37,https://winnipegtransit.com/routes/37,37,37
+Northwest Super Express,3,000000,EED700,,36,https://winnipegtransit.com/routes/36,36,36
+Maples Super Express,3,000000,EED700,,35,https://winnipegtransit.com/routes/35,35,35
+McPhillips Super Express,3,000000,EED700,,34,https://winnipegtransit.com/routes/34,34,34
+Transcona Blvd - McMeans,3,FFFFFF,052465,,48_merged_67223,https://winnipegtransit.com/routes/48,48,48
+Salter,3,000000,FFFFFF,,38_merged_67190,https://winnipegtransit.com/routes/38,38,38
+Dugald - Broadway,3,FFFFFF,026C7E,,D14,https://winnipegtransit.com/routes/D14,D14,439886059
+Archibald - Ness,3,FFFFFF,026C7E,,D15,https://winnipegtransit.com/routes/D15,D15,439889540
+Academy - Notre Dame,3,FFFFFF,026C7E,,D16,https://winnipegtransit.com/routes/D16,D16,439893021
+Talbot - Selkirk,3,FFFFFF,026C7E,,D17,https://winnipegtransit.com/routes/D17,D17,439896502
+Panet - Adsum,3,FFFFFF,026C7E,,D10,https://winnipegtransit.com/routes/D10,D10,439872135
+Salter - Stafford,3,FFFFFF,026C7E,,D11,https://winnipegtransit.com/routes/D11,D11,439875616
+Ellice,3,FFFFFF,026C7E,,D12,https://winnipegtransit.com/routes/D12,D12,439879097
+Sargent,3,FFFFFF,026C7E,,D13,https://winnipegtransit.com/routes/D13,D13,439882578
+Templeton - Tyndall Park,3,052465,FFFFFF,,336,https://winnipegtransit.com/routes/336,336,336
+Corydon,3,FFFFFF,026C7E,,D19,https://winnipegtransit.com/routes/D19,D19,439903464
+Amber Trails - Church,3,052465,FFFFFF,,332,https://winnipegtransit.com/routes/332,332,332
+Pembina,3,000000,FFFFFF,,60,https://winnipegtransit.com/routes/60,60,60
+Grant Express,3,000000,EED700,,65,https://winnipegtransit.com/routes/65,65,65
+Grant,3,000000,FFFFFF,,66,https://winnipegtransit.com/routes/66,66,66
+Lindenwoods East,3,000000,FFFFFF,,642_merged_67194,https://winnipegtransit.com/routes/642,642,642
+Grosvenor,3,000000,FFFFFF,,68,https://winnipegtransit.com/routes/68,68,68
+Dugald,3,052465,FFF0D8,,886,https://winnipegtransit.com/routes/886,886,886
+Rannock - Westwood,3,052465,FFF0D8,,885,https://winnipegtransit.com/routes/885,885,885
+Lindenwoods East,3,052465,FFFFFF,,642_merged_67217,https://winnipegtransit.com/routes/642,642,642
+St. Norbert,3,000000,FFFFFF,,91_merged_67199,https://winnipegtransit.com/routes/91,91,91
+North Town - Burland,3,052465,FFFFFF,,676_merged_67208,https://winnipegtransit.com/routes/676,676,676
+Murray,3,000000,FFFFFF,,330_merged_67197,https://winnipegtransit.com/routes/330,330,330
+Wildwood,3,052465,FFF0D8,,694_merged_67205,https://winnipegtransit.com/routes/694,694,694
+Killarney,3,052465,FFFFFF,,672_merged_67211,https://winnipegtransit.com/routes/672,672,672
+Tache,3,052465,FFF0D8,,888,https://winnipegtransit.com/routes/888,888,888
+Osborne Village,3,000000,FFFFFF,,635,https://winnipegtransit.com/routes/635,635,635
+Inkster,3,FFFFFF,052465,,39,https://winnipegtransit.com/routes/39,39,39
+McGregor - Osborne,3,FFFFFF,00B262,,F6,https://winnipegtransit.com/routes/F6,F6,465078056
+Westdale - Grace Hospital,3,000000,FFFFFF,,98,https://winnipegtransit.com/routes/98,98,98
+Kildonan Place - Whellams Lane,3,000000,FFFFFF,,90,https://winnipegtransit.com/routes/90,90,90
+South St. Vital - St. Marys,3,000000,FFFFFF,,93,https://winnipegtransit.com/routes/93,93,93
+Crossroads Station - Lakeside Meadows,3,000000,FFFFFF,,92,https://winnipegtransit.com/routes/92,92,92
+Tuxedo - Riverview,3,000000,FFFFFF,,95,https://winnipegtransit.com/routes/95,95,95
+Inkster Industrial Park - Point Douglas,3,000000,FFFFFF,,97,https://winnipegtransit.com/routes/97,97,97
+St. Vital Centre - Windsor Park,3,000000,FFFFFF,,96,https://winnipegtransit.com/routes/96,96,96
+Portage-Kildonan,3,000000,FFFFFF,,11,https://winnipegtransit.com/routes/11,11,11
+St. Boniface-West Broadway,3,000000,FFFFFF,,10,https://winnipegtransit.com/routes/10,10,10
+William,3,000000,FFFFFF,,12,https://winnipegtransit.com/routes/12,12,12
+Sargent-Mountain,3,000000,FFFFFF,,15,https://winnipegtransit.com/routes/15,15,15
+Ellice-St. Mary's,3,000000,FFFFFF,,14,https://winnipegtransit.com/routes/14,14,14
+McGregor,3,000000,FFFFFF,,17,https://winnipegtransit.com/routes/17,17,17
+Selkirk-Osborne,3,000000,FFFFFF,,16,https://winnipegtransit.com/routes/16,16,16
+Marion-Logan-Notre Dame,3,000000,FFFFFF,,19,https://winnipegtransit.com/routes/19,19,19
+North Main-Corydon,3,000000,FFFFFF,,18,https://winnipegtransit.com/routes/18,18,18
+Lindenwoods West,3,052465,FFFFFF,,641_merged_67216,https://winnipegtransit.com/routes/641,641,641
+Murray - Grey,3,052465,FFFFFF,,330_merged_67220,https://winnipegtransit.com/routes/330,330,330
+Wilkes,3,000000,FFFFFF,,677_merged_67186,https://winnipegtransit.com/routes/677,677,677
+Murray Park,3,052465,FFF0D8,,883,https://winnipegtransit.com/routes/883,883,883
+Brookside,3,052465,FFF0D8,,881,https://winnipegtransit.com/routes/881,881,881
+Dugald,3,052465,FFF0D8,,887,https://winnipegtransit.com/routes/887,887,887
+Southglen - Cottonwood,3,052465,FFFFFF,,558,https://winnipegtransit.com/routes/558,558,558
+Brookside Express,3,000000,EED700,,28_merged_67183,https://winnipegtransit.com/routes/28,28,28
+Keewatin,3,052465,FFF0D8,,884,https://winnipegtransit.com/routes/884,884,884
+Island Lakes - Morley,3,052465,FFFFFF,,557,https://winnipegtransit.com/routes/557,557,557
+Killarney,3,000000,FFFFFF,,672_merged_67188,https://winnipegtransit.com/routes/672,672,672
+Watt - Windsor Park,3,052465,FFFFFF,,551,https://winnipegtransit.com/routes/551,551,551
+Aldgate - Meadowood,3,052465,FFFFFF,,552,https://winnipegtransit.com/routes/552,552,552
+McGillivray,3,000000,FFFFFF,,650_merged_67198,https://winnipegtransit.com/routes/650,650,650
+Industrial,3,052465,FFF0D8,,690_merged_67212,https://winnipegtransit.com/routes/690,690,690
+Dalhousie,3,052465,FFFFFF,,671_merged_67210,https://winnipegtransit.com/routes/671,671,671
+Lindenwoods West,3,000000,FFFFFF,,641_merged_67193,https://winnipegtransit.com/routes/641,641,641
+Dugald,3,000000,FFFFFF,,49,https://winnipegtransit.com/routes/49,49,49
+Transcona Express,3,000000,EED700,,46,https://winnipegtransit.com/routes/46,46,46
+Transcona - Pembina,3,000000,FFFFFF,,47,https://winnipegtransit.com/routes/47,47,47
+Grey,3,000000,FFFFFF,,44,https://winnipegtransit.com/routes/44,44,44
+Talbot,3,000000,FFFFFF,,45,https://winnipegtransit.com/routes/45,45,45
+Plessis Express,3,000000,EED700,,42,https://winnipegtransit.com/routes/42,42,42
+All Seasons Express,3,000000,EED700,,40,https://winnipegtransit.com/routes/40,40,40
+Henderson Express,3,000000,EED700,,41,https://winnipegtransit.com/routes/41,41,41
+Assiniboia Express,3,000000,EED700,,22_merged_67191,https://winnipegtransit.com/routes/22,22,22
+Bridgwater/River Road,3,000000,FFFFFF,,676_merged_67185,https://winnipegtransit.com/routes/676,676,676
+Dalhousie,3,000000,FFFFFF,,671_merged_67187,https://winnipegtransit.com/routes/671,671,671
+Portage,3,FFFFFF,052465,,22_merged_67214,https://winnipegtransit.com/routes/22,22,22
+Morley,3,052465,FFF0D8,,895,https://winnipegtransit.com/routes/895,895,895
+Burrows,3,052465,FFF0D8,,833,https://winnipegtransit.com/routes/833,833,833
+Sherbrook Express - Pembina Express,3,052465,FFF0D8,,889,https://winnipegtransit.com/routes/889,889,889
+Crosstown North,3,000000,FFFFFF,,77,https://winnipegtransit.com/routes/77,77,77
+Crosstown East,3,000000,FFFFFF,,75,https://winnipegtransit.com/routes/75,75,75
+Arlington,3,000000,FFFFFF,,71,https://winnipegtransit.com/routes/71,71,71
+Watt - Logan,3,FFFFFF,052465,,43_merged_67224,https://winnipegtransit.com/routes/43,43,43
+Charleswood,3,000000,FFFFFF,,79,https://winnipegtransit.com/routes/79,79,79
+Waverley,3,000000,FFFFFF,,78,https://winnipegtransit.com/routes/78,78,78
+Industrial,3,FFFFFF,000000,,690_merged_67189,https://winnipegtransit.com/routes/690,690,690
+Wilkes,3,052465,FFFFFF,,677_merged_67209,https://winnipegtransit.com/routes/677,677,677
+Gateway - Portage,3,FFFFFF,6450A1,,FX4,https://winnipegtransit.com/routes/FX4,FX4,472130562
+Richmond,3,000000,FFFFFF,,662_merged_67180,https://winnipegtransit.com/routes/662,662,662
+River Heights - Cambridge,3,052465,FFFFFF,,680,https://winnipegtransit.com/routes/680,680,680
