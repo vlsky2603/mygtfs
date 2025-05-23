@@ -5,27 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Winnipeg Transit Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet.markercluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="map"></div>
     <div id="loading">
-        <div class="spinner"></div>
-        <span>Loading stops...</span>
+    <div class="loading-animation-container">
+        <div class="loading-road">
+            <div class="loading-bus">
+                <i class="fas fa-bus"></i>
+            </div>
+        </div>
     </div>
+    <span class="loading-text">Loading stops...</span> <!-- Убедитесь, что текст здесь или устанавливается JS -->
+     </div>
     
     <div id="header-controls">
-        <button id="filter-toggle" class="control-button">
+        <button id="filter-toggle" class="control-button" title="Filters">
             <i class="fas fa-filter"></i>
             <span id="active-filters"></span>
         </button>
-        <button id="location-button" class="control-button">
+        <!-- Favorites Button Added Here -->
+        <button id="favorites-toggle" class="control-button" title="Favorite Stops">
+            <i class="fas fa-star"></i>
+        </button>
+        <button id="location-button" class="control-button" title="My Location">
             <i class="fas fa-location-arrow"></i>
         </button>
-        <button id="theme-toggle" class="control-button">
+        <button id="theme-toggle" class="control-button" title="Toggle Theme">
             <i class="fas fa-moon"></i>
         </button>
+        <!-- Reset Route button will be added here by JS if needed -->
     </div>
     
     <div id="filter-panel">
@@ -37,7 +51,6 @@
             </div>
         </div>
         <div class="panel-content">
-            <!-- GTFS Route Filter -->
             <div class="filter-group">
                 <label for="route-filter" style="margin-top:10px;">Route (GTFS):</label>
                 <select id="route-filter">
@@ -65,24 +78,45 @@
             </div>
         </div>
     </div>
+
+    <!-- Favorites Panel Structure -->
+    <div id="favorites-panel">
+        <div class="panel-header">
+            <h3>Favorite Stops</h3>
+            <button id="close-favorites-panel"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="panel-content">
+            <div class="favorites-list-container">
+                <!-- Favorite items will be dynamically inserted here by JS -->
+                <!-- Example of a no-favorites message (also handled by JS) -->
+                <!-- <p class="no-favorites">You have no favorite stops yet.</p> -->
+            </div>
+        </div>
+    </div>
     
     <div id="schedule-panel">
         <div class="panel-header">
-            <h3>Schedule</h3>
-            <button id="close-schedule"><i class="fas fa-times"></i></button>
+            <h3 id="schedule-panel-title">Schedule</h3> <!-- Title will be updated by JS -->
+            <div class="header-actions-wrapper">
+                 <!-- Favorite, Refresh, Close buttons will be added here by JS -->
+                 <!-- The #close-schedule button might be moved here by JS or created if not present -->
+            </div>
         </div>
         <div class="panel-content">
-            <div class="legend-modern" style="margin-bottom:10px;">
-                <span class="arrival-badge confirmed">Live</span>
+            <div class="legend-modern"> <!-- Removed inline style margin-bottom:10px; -->
+                <span class="arrival-badge live">Live</span>
                 <span class="arrival-badge gtfs">Schedule</span>
             </div>
-            <div class="schedule-content"></div>
+            <div class="schedule-content">
+                <!-- Loader or actual schedule items will go here -->
+            </div>
         </div>
     </div>
     
     <div id="radius-label">400 m</div>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="main_dynamic.js"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2025-05-21T06:22:10.656Z",
+  "lastUpdated": "2025-05-23T02:06:31.152Z",
   "stops": [
     {
       "stop_lat": "49.8502350543",
@@ -56670,6 +56670,37 @@
       "stop_name": "Eastbound John Forsyth at Ashworth",
       "location_type": "0",
       "stop_code": "50937"
+    },
+    {
+      "key": 40404,
+      "name": "Southbound Glenway at Glenway Loop",
+      "number": 40404,
+      "direction": "Southbound",
+      "side": "NA",
+      "street": {
+        "key": 50000278,
+        "name": "Glenway Loop",
+        "type": "Loop"
+      },
+      "cross-street": {
+        "key": 1715,
+        "name": "Henderson Highway",
+        "type": "Highway"
+      },
+      "centre": {
+        "utm": {
+          "zone": "14U",
+          "x": 638608,
+          "y": 5536075
+        },
+        "geographic": {
+          "latitude": "49.96091",
+          "longitude": "-97.06745"
+        }
+      },
+      "distances": {
+        "direct": "1955.87"
+      }
     }
   ]
 }
