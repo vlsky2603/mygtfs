@@ -28,6 +28,8 @@ let darkMode = false;
 let currentRoutePolyline = null;
 let routePlannerStartMarker = null;
 let routePlannerEndMarker = null;
+let startAddressResults = [];
+let endAddressResults = [];
 let debounceTimeout;
 let currentStopForSchedulePanel = null; 
 let liveViewOriginStopMarker = null; 
@@ -71,6 +73,7 @@ const FETCH_PREVIOUS_STOP_FOR_CLOSEST_BUS = true;
 const MAX_UNDETERMINED_FUTURE_ARRIVAL_MINUTES = 25; 
 const NUMBER_OF_BUSES_TO_SHOW = 2;
 const WALK_SPEED_MPS = 1.4;
+const MAX_ROUTE_EXPANSIONS = 1000;
 
 // --- Инициализация ---
 
@@ -135,6 +138,7 @@ function initUI() {
     document.getElementById('route-planner-toggle')?.addEventListener('click', () => togglePanel('route-planner-panel'));
     document.getElementById('close-route-planner')?.addEventListener('click', () => closeRoutePlannerPanel());
     document.getElementById('build-route-button')?.addEventListener('click', buildRouteFromAddresses);
+    setupAddressAutocomplete();
     
     document.getElementById('direction-filter')?.addEventListener('change', e => { filters.direction = e.target.value || null; if (filters.route && !isLiveBusViewActive) showRouteAndBuses(filters.route); else if (!isLiveBusViewActive) refreshMarkers(map.getCenter()); });
     document.getElementById('street-search')?.addEventListener('input', updateStreetSearch);
@@ -275,6 +279,41 @@ function handleResetRoute() {
     updateResetRouteButtonVisibility();
     map.closePopup();
 }
+function getCoordsFromInput(value, type) {
+    const list = type === 'start' ? startAddressResults : endAddressResults;
+    const match = list.find(r => r.display === value);
+    if (match) return { lat: match.lat, lon: match.lon };
+    return null;
+}
+
+function setupAddressAutocomplete() {
+    const startInput = document.getElementById('route-start-address');
+    const endInput = document.getElementById('route-end-address');
+    startInput?.addEventListener('input', async e => {
+        startAddressResults = await getAddressSuggestions(e.target.value);
+        const list = document.getElementById('start-address-suggestions');
+        if (list) {
+            list.innerHTML = '';
+            startAddressResults.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.display;
+                list.appendChild(opt);
+            });
+        }
+    });
+    endInput?.addEventListener('input', async e => {
+        endAddressResults = await getAddressSuggestions(e.target.value);
+        const list = document.getElementById('end-address-suggestions');
+        if (list) {
+            list.innerHTML = '';
+            endAddressResults.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.display;
+                list.appendChild(opt);
+            });
+        }
+    });
+}
 async function buildRouteFromAddresses() {
     const startAddr = document.getElementById('route-start-address')?.value.trim();
     const endAddr = document.getElementById('route-end-address')?.value.trim();
@@ -282,8 +321,10 @@ async function buildRouteFromAddresses() {
     if (!startAddr || !endAddr || !resultEl) return;
     resultEl.textContent = 'Searching...';
 
-    const startCoord = await geocodeAddress(startAddr);
-    const endCoord = await geocodeAddress(endAddr);
+    let startCoord = getCoordsFromInput(startAddr, 'start');
+    let endCoord = getCoordsFromInput(endAddr, 'end');
+    if (!startCoord) startCoord = await geocodeAddress(startAddr);
+    if (!endCoord) endCoord = await geocodeAddress(endAddr);
     if (!startCoord || !endCoord) { resultEl.textContent = 'Address not found.'; return; }
 
     buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr);
@@ -417,10 +458,12 @@ function planRoutes(startStopId, endStopId, earliestStartSec, maxTransfers = 3) 
     const results = [];
     const queue = [{ stopId: startStopId, time: earliestStartSec, path: [] }];
     const visited = {};
+    let expansions = 0;
 
-    while (queue.length && results.length < 20) {
+    while (queue.length && results.length < 20 && expansions < MAX_ROUTE_EXPANSIONS) {
         queue.sort((a,b) => a.time - b.time);
         const state = queue.shift();
+        expansions++;
         const transfers = state.path.length > 0 ? state.path.length - 1 : 0;
         const key = state.stopId + '-' + transfers;
         if (visited[key] && visited[key] <= state.time) continue;

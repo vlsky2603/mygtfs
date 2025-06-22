@@ -193,6 +193,26 @@ async function geocodeAddress(address) {
     return null;
 }
 
+async function getAddressSuggestions(query, limit = 5) {
+    if (!query || query.length < 3) return [];
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=${limit}&q=${encodeURIComponent(query + ', Winnipeg')}`;
+    try {
+        const res = await fetch(url, { headers: { 'User-Agent': 'mygtfs-app' } });
+        if (!res.ok) return [];
+        const data = await res.json();
+        if (Array.isArray(data)) {
+            return data.map(item => ({
+                display: item.display_name,
+                lat: parseFloat(item.lat),
+                lon: parseFloat(item.lon)
+            }));
+        }
+    } catch (e) {
+        console.error('Address suggestion error:', e);
+    }
+    return [];
+}
+
 function findNearestStop(lat, lon) {
     if (!allLocalStops?.length) return null;
     let nearest = null;
