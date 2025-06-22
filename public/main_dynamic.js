@@ -312,36 +312,121 @@ function buildRouteBetweenStops() {
     const startId = document.getElementById('route-plan-start')?.value;
     const endId = document.getElementById('route-plan-end')?.value;
     const resultEl = document.getElementById('route-plan-result');
-    if (!startId || !endId || !resultEl) return;
+    const optionsEl = document.getElementById('route-plan-options');
+    if (!startId || !endId || !resultEl || !optionsEl) return;
 
     if (currentRoutePolyline) { map.removeLayer(currentRoutePolyline); currentRoutePolyline = null; }
+    optionsEl.innerHTML = '';
 
-    let foundTrip = null;
+    const routeOptions = findRouteOptions(startId, endId);
+    if (routeOptions.length === 0) {
+        resultEl.textContent = 'No route found.';
+        return;
+    }
+
+    drawRouteOption(routeOptions[0]);
+    const firstLeg = routeOptions[0].legs[0];
+    const lastLeg = routeOptions[0].legs[routeOptions[0].legs.length - 1];
+    const serviceDate = determineSimulationTimeUTC();
+    const dep = getDatetimeForGtfsTime(firstLeg.startTime, serviceDate);
+    const arr = getDatetimeForGtfsTime(lastLeg.endTime, serviceDate);
+    resultEl.textContent = `Departs ${dep.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}, arrives ${arr.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+
+    routeOptions.forEach((opt, idx) => {
+        const legFirst = opt.legs[0];
+        const legLast = opt.legs[opt.legs.length-1];
+        const d = getDatetimeForGtfsTime(legFirst.startTime, serviceDate);
+        const a = getDatetimeForGtfsTime(legLast.endTime, serviceDate);
+        const item = document.createElement('div');
+        item.className = 'route-option-item';
+        item.textContent = `${idx===0?'Fastest':'Option '+(idx+1)}: ${opt.transfers} transfers, ${(a - d)/60000|0} min`;
+        item.addEventListener('click', () => {
+            drawRouteOption(opt);
+            resultEl.textContent = `Departs ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}, arrives ${a.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+        });
+        optionsEl.appendChild(item);
+    });
+}
+
+function findRouteOptions(startStopId, endStopId) {
+    const serviceDate = determineSimulationTimeUTC();
+    const nowSeconds = serviceDate.getUTCHours()*3600 + serviceDate.getUTCMinutes()*60 + serviceDate.getUTCSeconds();
+    const options = [];
+
     for (const tripId in gtfsData.tripToStops) {
         const stops = gtfsData.tripToStops[tripId];
-        const startIndex = stops.findIndex(s => String(s.stop_id) === String(startId));
-        const endIndex = stops.findIndex(s => String(s.stop_id) === String(endId));
-        if (startIndex >= 0 && endIndex > startIndex) { foundTrip = { tripId, startIndex, endIndex }; break; }
+        const startIdx = stops.findIndex(s => String(s.stop_id) === String(startStopId));
+        const endIdx = stops.findIndex(s => String(s.stop_id) === String(endStopId));
+        if (startIdx >= 0 && endIdx > startIdx) {
+            const depSec = gtfsTimeToSeconds(stops[startIdx].departure_time);
+            const arrSec = gtfsTimeToSeconds(stops[endIdx].arrival_time);
+            if (depSec !== null && arrSec !== null && depSec >= nowSeconds) {
+                options.push({
+                    transfers: 0,
+                    legs: [{tripId, start: startStopId, end: endStopId, startTime: depSec, endTime: arrSec}]
+                });
+            }
+        }
     }
 
-    if (!foundTrip) { resultEl.textContent = 'No direct route found.'; return; }
-    const trip = gtfsData.trips.find(t => t.trip_id === foundTrip.tripId);
-    if (!trip) { resultEl.textContent = 'Trip data missing.'; return; }
+    // one transfer
+    for (const tripIdA in gtfsData.tripToStops) {
+        const stopsA = gtfsData.tripToStops[tripIdA];
+        const startIdx = stopsA.findIndex(s => String(s.stop_id) === String(startStopId));
+        if (startIdx < 0) continue;
+        for (let i = startIdx + 1; i < Math.min(startIdx + 6, stopsA.length); i++) {
+            const transferStop = stopsA[i];
+            const depSecA = gtfsTimeToSeconds(stopsA[startIdx].departure_time);
+            const arrSecTransfer = gtfsTimeToSeconds(transferStop.arrival_time);
+            if (depSecA === null || arrSecTransfer === null || depSecA > nowSeconds || arrSecTransfer <= depSecA) continue;
+            for (const tripIdB in gtfsData.tripToStops) {
+                const stopsB = gtfsData.tripToStops[tripIdB];
+                const transferIdx = stopsB.findIndex(s => String(s.stop_id) === String(transferStop.stop_id));
+                const endIdxB = stopsB.findIndex(s => String(s.stop_id) === String(endStopId));
+                if (transferIdx >= 0 && endIdxB > transferIdx) {
+                    const depSecB = gtfsTimeToSeconds(stopsB[transferIdx].departure_time);
+                    const arrSecB = gtfsTimeToSeconds(stopsB[endIdxB].arrival_time);
+                    if (depSecB !== null && arrSecB !== null && depSecB >= arrSecTransfer) {
+                        options.push({
+                            transfers: 1,
+                            legs: [
+                                {tripId: tripIdA, start: startStopId, end: transferStop.stop_id, startTime: depSecA, endTime: arrSecTransfer},
+                                {tripId: tripIdB, start: transferStop.stop_id, end: endStopId, startTime: depSecB, endTime: arrSecB}
+                            ]
+                        });
+                    }
+                }
+            }
+        }
+    }
 
-    const shapeId = trip.shape_id;
-    const shape = gtfsData.shapes[shapeId];
-    if (shape) {
+    return options.sort((a,b) => {
+        const tA = a.legs[a.legs.length-1].endTime - a.legs[0].startTime;
+        const tB = b.legs[b.legs.length-1].endTime - b.legs[0].startTime;
+        if (tA !== tB) return tA - tB;
+        return a.transfers - b.transfers;
+    }).slice(0,3);
+}
+
+function drawRouteOption(option) {
+    if (currentRoutePolyline) {
+        map.removeLayer(currentRoutePolyline);
+        currentRoutePolyline = null;
+    }
+    const polylines = [];
+    option.legs.forEach(leg => {
+        const trip = gtfsData.trips.find(t => t.trip_id === leg.tripId);
+        if (!trip) return;
+        const shapeId = trip.shape_id;
+        const shape = gtfsData.shapes[shapeId];
+        if (!shape) return;
         const poly = shape.map(p => [p.lat, p.lon]);
-        currentRoutePolyline = L.polyline(poly, { color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(), weight: 5 }).addTo(map);
+        polylines.push(poly);
+    });
+    if (polylines.length > 0) {
+        currentRoutePolyline = L.polyline(polylines, { color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(), weight: 5 }).addTo(map);
         map.fitBounds(currentRoutePolyline.getBounds(), { padding: [50,50] });
     }
-
-    const startStopTime = gtfsData.tripToStops[foundTrip.tripId][foundTrip.startIndex];
-    const endStopTime = gtfsData.tripToStops[foundTrip.tripId][foundTrip.endIndex];
-    const serviceDate = determineSimulationTimeUTC();
-    const startDeparture = getDatetimeForGtfsTime(gtfsTimeToSeconds(startStopTime.departure_time), serviceDate);
-    const endArrival = getDatetimeForGtfsTime(gtfsTimeToSeconds(endStopTime.arrival_time), serviceDate);
-    resultEl.textContent = `Departs ${startDeparture.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}, arrives ${endArrival.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
 }
 
 function resetFilters() {
@@ -367,6 +452,7 @@ function resetFilters() {
         }
     } else if (previousStopContextForReturn) { 
          map.setView(previousStopContextForReturn.latlng, previousStopContextForReturn.zoom, { animate: true });
+
          const originalStopData = allLocalStops.find(s => String(s.stop_id) === String(previousStopContextForReturn.stop_id));
          if (originalStopData) {
             if (originalStopData) {

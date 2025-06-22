@@ -184,7 +184,12 @@ function togglePanel(panelId) {
 function closeFilterPanel(removeBlur = true) { closePanel('filter-panel', removeBlur); }
 function closeFavoritesPanel(removeBlur = true) { closePanel('favorites-panel', removeBlur); }
 function closeRegularNotificationsPanel(removeBlur = true) { closePanel('regular-notifications-panel', removeBlur); closeRuleEditor(); }
-function closeRoutePlannerPanel(removeBlur = true) { closePanel('route-planner-panel', removeBlur); }
+function closeRoutePlannerPanel(removeBlur = true) {
+    if (routePlannerStartMarker) { map.removeLayer(routePlannerStartMarker); routePlannerStartMarker = null; }
+    if (routePlannerEndMarker) { map.removeLayer(routePlannerEndMarker); routePlannerEndMarker = null; }
+    if (currentRoutePolyline) { map.removeLayer(currentRoutePolyline); currentRoutePolyline = null; }
+    closePanel('route-planner-panel', removeBlur);
+}
 function closeSchedulePanel(removeBlur = true) {
     const panel = document.getElementById('schedule-panel');
     if (panel) { panel.classList.remove('active'); panel.style.maxHeight = ''; }

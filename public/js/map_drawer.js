@@ -68,6 +68,21 @@ function createStopMarker(stop, isLiveOrigin = false) {
     return marker;
 }
 
+function createRoutePlannerMarker(lat, lon, type) {
+    const className = type === 'start' ? 'route-planner-start' : 'route-planner-end';
+    const markerHTML = `<div class="stop-marker-dot ${className}"></div>`;
+    return L.marker([lat, lon], {
+        icon: L.divIcon({
+            html: markerHTML,
+            className: 'stop-marker-wrapper',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        }),
+        interactive: false,
+        keyboard: false
+    });
+}
+
 function clearPreviousRouteDrawing() {
     if (currentRoutePolyline) {
         map.removeLayer(currentRoutePolyline);
