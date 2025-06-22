@@ -318,16 +318,23 @@ async function buildRouteFromAddresses() {
     const startAddr = document.getElementById('route-start-address')?.value.trim();
     const endAddr = document.getElementById('route-end-address')?.value.trim();
     const resultEl = document.getElementById('route-plan-result');
+    const spinner = document.getElementById('route-plan-spinner');
     if (!startAddr || !endAddr || !resultEl) return;
     resultEl.textContent = 'Searching...';
+    if (spinner) spinner.style.display = 'block';
 
     let startCoord = getCoordsFromInput(startAddr, 'start');
     let endCoord = getCoordsFromInput(endAddr, 'end');
     if (!startCoord) startCoord = await geocodeAddress(startAddr);
     if (!endCoord) endCoord = await geocodeAddress(endAddr);
-    if (!startCoord || !endCoord) { resultEl.textContent = 'Address not found.'; return; }
+    if (!startCoord || !endCoord) {
+        if (spinner) spinner.style.display = 'none';
+        resultEl.textContent = 'Address not found or service unavailable.';
+        return;
+    }
 
     buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr);
+    if (spinner) spinner.style.display = 'none';
 }
 
 
@@ -335,6 +342,7 @@ function buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr) {
     const resultEl = document.getElementById('route-plan-result');
     const optionsEl = document.getElementById('route-plan-options');
     const detailsEl = document.getElementById('route-plan-details');
+    const spinner = document.getElementById('route-plan-spinner');
     if (!resultEl || !optionsEl || !detailsEl) return;
 
     if (currentRoutePolyline) { map.removeLayer(currentRoutePolyline); currentRoutePolyline = null; }
@@ -344,10 +352,11 @@ function buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr) {
     const routeOptions = getRouteOptions(startCoord, endCoord);
     if (routeOptions.length === 0) {
         resultEl.textContent = 'No route found.';
+        if (spinner) spinner.style.display = 'none';
         return;
     }
 
-    drawRouteOption(routeOptions[0]);
+    drawRouteOption(routeOptions[0], startCoord, endCoord);
     displayRouteDetails(routeOptions[0], startAddr, endAddr);
     const firstLeg = routeOptions[0].legs[0];
     const lastLeg = routeOptions[0].legs[routeOptions[0].legs.length-1];
@@ -364,17 +373,18 @@ function buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr) {
         const item = document.createElement('div');
         item.className = 'route-option-item';
         const label = idx===0 ? 'Fastest' : idx===1 ? 'Fewest transfers' : 'Least walking';
-        item.textContent = `${label}: ${(a - d)/60000|0} min, ${opt.transfers} transfers`;
+        item.innerHTML = `<span>${label}</span><span>${(a - d)/60000|0} min, ${opt.transfers} transfers</span>`;
         item.addEventListener('click', () => {
-            drawRouteOption(opt);
+            drawRouteOption(opt, startCoord, endCoord);
             displayRouteDetails(opt, startAddr, endAddr);
             resultEl.textContent = `${Math.round((a - d)/60000)} min, ${opt.transfers} transfers`;
         });
         optionsEl.appendChild(item);
     });
+    if (spinner) spinner.style.display = 'none';
 }
 
-function drawRouteOption(option) {
+function drawRouteOption(option, startCoord, endCoord) {
     if (currentRoutePolyline) {
         map.removeLayer(currentRoutePolyline);
         currentRoutePolyline = null;
@@ -397,6 +407,7 @@ function drawRouteOption(option) {
     }
 
     const polylines = [];
+    const walkLines = [];
     option.legs.forEach(leg => {
         const trip = gtfsData.trips.find(t => t.trip_id === leg.tripId);
         if (!trip) return;
@@ -405,9 +416,19 @@ function drawRouteOption(option) {
         if (!shape) return;
         polylines.push(shape.map(p => [p.lat, p.lon]));
     });
+    if (startCoord && gtfsData.stopDetails[option.startStop]) {
+        const s = gtfsData.stopDetails[option.startStop];
+        walkLines.push([[startCoord.lat, startCoord.lon], [s.stop_lat, s.stop_lon]]);
+    }
+    if (endCoord && gtfsData.stopDetails[option.endStop]) {
+        const e = gtfsData.stopDetails[option.endStop];
+        walkLines.push([[e.stop_lat, e.stop_lon], [endCoord.lat, endCoord.lon]]);
+    }
     if (polylines.length > 0) {
-        currentRoutePolyline = L.polyline(polylines, { color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(), weight: 5 }).addTo(map);
-        map.fitBounds(currentRoutePolyline.getBounds(), { padding: [50,50] });
+        const polyOptions = { color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(), weight: 5 };
+        currentRoutePolyline = L.polyline(polylines, polyOptions).addTo(map);
+        walkLines.forEach(line => L.polyline(line, {color:'#666', dashArray:'4 6'}).addTo(map));
+        map.fitBounds(currentRoutePolyline.getBounds().pad(0.1), { padding: [50,50] });
     }
 }
 

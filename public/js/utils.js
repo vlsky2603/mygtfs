@@ -178,10 +178,17 @@ async function fetchWithRateLimit(url, options) {
     return fetch(url, options);
 }
 
+function fetchWithTimeout(resource, options = {}, timeout = 8000) {
+    return Promise.race([
+        fetch(resource, options),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+    ]);
+}
+
 async function geocodeAddress(address) {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', Winnipeg')}`;
     try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'mygtfs-app' } });
+        const res = await fetchWithTimeout(url, { headers: { 'User-Agent': 'mygtfs-app' } }, 8000);
         if (!res.ok) return null;
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -197,7 +204,7 @@ async function getAddressSuggestions(query, limit = 5) {
     if (!query || query.length < 3) return [];
     const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=${limit}&q=${encodeURIComponent(query + ', Winnipeg')}`;
     try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'mygtfs-app' } });
+        const res = await fetchWithTimeout(url, { headers: { 'User-Agent': 'mygtfs-app' } }, 8000);
         if (!res.ok) return [];
         const data = await res.json();
         if (Array.isArray(data)) {
