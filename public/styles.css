@@ -408,4 +408,24 @@ body.modal-open #header-controls #reset-route-button:hover { opacity: 1; }
     color: var(--text-secondary-color);
 }
 
+.route-plan-options {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.route-option-item {
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--panel-bg);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.route-option-item:hover {
+    background: var(--panel-border);
+}
+
 
