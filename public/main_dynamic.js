@@ -522,7 +522,8 @@ function getRouteOptions(startCoord, endCoord) {
     return unique.slice(0,3);
 }
 
-function resetFilters() {
+// Expose globally so initUI can attach handlers before the function definition
+window.resetFilters = function resetFilters() {
     if (isLiveBusViewActive) deactivateLiveBusView(true); 
     
     filters.direction = null; filters.street = null;
