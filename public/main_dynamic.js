@@ -323,22 +323,22 @@ async function buildRouteFromAddresses() {
     resultEl.textContent = 'Searching...';
     if (spinner) spinner.style.display = 'block';
 
-    let startCoord = getCoordsFromInput(startAddr, 'start');
-    let endCoord = getCoordsFromInput(endAddr, 'end');
-    if (!startCoord) startCoord = await geocodeAddress(startAddr);
-    if (!endCoord) endCoord = await geocodeAddress(endAddr);
-    if (!startCoord || !endCoord) {
+    let startCoords = getCoordsFromInput(startAddr, 'start');
+    let endCoords = getCoordsFromInput(endAddr, 'end');
+    if (!startCoords) startCoords = await geocodeAddress(startAddr);
+    if (!endCoords) endCoords = await geocodeAddress(endAddr);
+    if (!startCoords || !endCoords) {
         if (spinner) spinner.style.display = 'none';
         resultEl.textContent = 'Address not found or service unavailable.';
         return;
     }
 
-    buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr);
+    buildRouteBetweenAddresses(startCoords, endCoords, startAddr, endAddr);
     if (spinner) spinner.style.display = 'none';
 }
 
 
-function buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr) {
+function buildRouteBetweenAddresses(startCoords, endCoords, startAddr, endAddr) {
     const resultEl = document.getElementById('route-plan-result');
     const optionsEl = document.getElementById('route-plan-options');
     const detailsEl = document.getElementById('route-plan-details');
@@ -349,14 +349,14 @@ function buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr) {
     optionsEl.innerHTML = '';
     detailsEl.innerHTML = '';
 
-    const routeOptions = getRouteOptions(startCoord, endCoord);
+    const routeOptions = getRouteOptions(startCoords, endCoords);
     if (routeOptions.length === 0) {
         resultEl.textContent = 'No route found.';
         if (spinner) spinner.style.display = 'none';
         return;
     }
 
-    drawRouteOption(routeOptions[0], startCoord, endCoord);
+    drawRouteOption(routeOptions[0], startCoords, endCoords);
     displayRouteDetails(routeOptions[0], startAddr, endAddr);
     const firstLeg = routeOptions[0].legs[0];
     const lastLeg = routeOptions[0].legs[routeOptions[0].legs.length-1];
@@ -375,7 +375,7 @@ function buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr) {
         const label = idx===0 ? 'Fastest' : idx===1 ? 'Fewest transfers' : 'Least walking';
         item.innerHTML = `<span>${label}</span><span>${(a - d)/60000|0} min, ${opt.transfers} transfers</span>`;
         item.addEventListener('click', () => {
-            drawRouteOption(opt, startCoord, endCoord);
+            drawRouteOption(opt, startCoords, endCoords);
             displayRouteDetails(opt, startAddr, endAddr);
             resultEl.textContent = `${Math.round((a - d)/60000)} min, ${opt.transfers} transfers`;
         });
@@ -384,7 +384,7 @@ function buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr) {
     if (spinner) spinner.style.display = 'none';
 }
 
-function drawRouteOption(option, startCoord, endCoord) {
+function drawRouteOption(option, startCoords, endCoords) {
     if (currentRoutePolyline) {
         map.removeLayer(currentRoutePolyline);
         currentRoutePolyline = null;
@@ -416,13 +416,13 @@ function drawRouteOption(option, startCoord, endCoord) {
         if (!shape) return;
         polylines.push(shape.map(p => [p.lat, p.lon]));
     });
-    if (startCoord && gtfsData.stopDetails[option.startStop]) {
+    if (startCoords && gtfsData.stopDetails[option.startStop]) {
         const s = gtfsData.stopDetails[option.startStop];
-        walkLines.push([[startCoord.lat, startCoord.lon], [s.stop_lat, s.stop_lon]]);
+        walkLines.push([[startCoords.lat, startCoords.lon], [s.stop_lat, s.stop_lon]]);
     }
-    if (endCoord && gtfsData.stopDetails[option.endStop]) {
+    if (endCoords && gtfsData.stopDetails[option.endStop]) {
         const e = gtfsData.stopDetails[option.endStop];
-        walkLines.push([[e.stop_lat, e.stop_lon], [endCoord.lat, endCoord.lon]]);
+        walkLines.push([[e.stop_lat, e.stop_lon], [endCoords.lat, endCoords.lon]]);
     }
     if (polylines.length > 0) {
         const polyOptions = { color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(), weight: 5 };
@@ -515,17 +515,17 @@ function planRoutes(startStopId, endStopId, earliestStartSec, maxTransfers = 3) 
     return results;
 }
 
-function getRouteOptions(startCoord, endCoord) {
-    const startCandidates = findNearestStops(startCoord.lat, startCoord.lon, 3);
-    const endCandidates = findNearestStops(endCoord.lat, endCoord.lon, 3);
+function getRouteOptions(startCoords, endCoords) {
+    const startCandidates = findNearestStops(startCoords.lat, startCoords.lon, 3);
+    const endCandidates = findNearestStops(endCoords.lat, endCoords.lon, 3);
     const serviceDate = determineSimulationTimeUTC();
     const nowSeconds = serviceDate.getUTCHours()*3600 + serviceDate.getUTCMinutes()*60 + serviceDate.getUTCSeconds();
     const options = [];
     startCandidates.forEach(s => {
-        const startWalk = getDistance(startCoord.lat, startCoord.lon, s.stop_lat, s.stop_lon);
+        const startWalk = getDistance(startCoords.lat, startCoords.lon, s.stop_lat, s.stop_lon);
         const startWalkSec = startWalk / WALK_SPEED_MPS;
         endCandidates.forEach(e => {
-            const endWalk = getDistance(endCoord.lat, endCoord.lon, e.stop_lat, e.stop_lon);
+            const endWalk = getDistance(endCoords.lat, endCoords.lon, e.stop_lat, e.stop_lon);
             const endWalkSec = endWalk / WALK_SPEED_MPS;
             const routes = planRoutes(s.stop_id, e.stop_id, nowSeconds + startWalkSec, 2);
             routes.forEach(r => {
