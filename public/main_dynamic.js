@@ -28,6 +28,10 @@ let darkMode = false;
 let currentRoutePolyline = null;
 let routePlannerStartMarker = null;
 let routePlannerEndMarker = null;
+let startAddressResults = [];
+let endAddressResults = [];
+let startAddressResults = [];
+let endAddressResults = [];
 let debounceTimeout;
 let currentStopForSchedulePanel = null; 
 let liveViewOriginStopMarker = null; 
@@ -69,7 +73,12 @@ const DEFAULT_NOTIFICATION_MINUTES_BEFORE = 2;
 const RULE_MONITOR_INTERVAL = 1 * 60 * 1000; 
 const FETCH_PREVIOUS_STOP_FOR_CLOSEST_BUS = true; 
 const MAX_UNDETERMINED_FUTURE_ARRIVAL_MINUTES = 25; 
-const NUMBER_OF_BUSES_TO_SHOW = 2; 
+const NUMBER_OF_BUSES_TO_SHOW = 2;
+const WALK_SPEED_MPS = 1.4;
+const MAX_ROUTE_EXPANSIONS = 1000;
+const NUMBER_OF_BUSES_TO_SHOW = 2;
+const WALK_SPEED_MPS = 1.4;
+const MAX_ROUTE_EXPANSIONS = 1000;
 
 // --- Инициализация ---
 
@@ -134,6 +143,8 @@ function initUI() {
     document.getElementById('route-planner-toggle')?.addEventListener('click', () => togglePanel('route-planner-panel'));
     document.getElementById('close-route-planner')?.addEventListener('click', () => closeRoutePlannerPanel());
     document.getElementById('build-route-button')?.addEventListener('click', buildRouteFromAddresses);
+    setupAddressAutocomplete();
+    setupAddressAutocomplete();
     
     document.getElementById('direction-filter')?.addEventListener('change', e => { filters.direction = e.target.value || null; if (filters.route && !isLiveBusViewActive) showRouteAndBuses(filters.route); else if (!isLiveBusViewActive) refreshMarkers(map.getCenter()); });
     document.getElementById('street-search')?.addEventListener('input', updateStreetSearch);
@@ -274,43 +285,96 @@ function handleResetRoute() {
     updateResetRouteButtonVisibility();
     map.closePopup();
 }
+function getCoordsFromInput(value, type) {
+    const list = type === 'start' ? startAddressResults : endAddressResults;
+    const match = list.find(r => r.display === value);
+    if (match) return { lat: match.lat, lon: match.lon };
+    return null;
+}
+
+function setupAddressAutocomplete() {
+    const startInput = document.getElementById('route-start-address');
+    const endInput = document.getElementById('route-end-address');
+    startInput?.addEventListener('input', async e => {
+        startAddressResults = await getAddressSuggestions(e.target.value);
+        const list = document.getElementById('start-address-suggestions');
+        if (list) {
+            list.innerHTML = '';
+            startAddressResults.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.display;
+                list.appendChild(opt);
+            });
+        }
+    });
+    endInput?.addEventListener('input', async e => {
+        endAddressResults = await getAddressSuggestions(e.target.value);
+        const list = document.getElementById('end-address-suggestions');
+        if (list) {
+            list.innerHTML = '';
+            endAddressResults.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.display;
+                list.appendChild(opt);
+            });
+        }
+    });
+}
+function getCoordsFromInput(value, type) {
+    const list = type === 'start' ? startAddressResults : endAddressResults;
+    const match = list.find(r => r.display === value);
+    if (match) return { lat: match.lat, lon: match.lon };
+    return null;
+}
+
+function setupAddressAutocomplete() {
+    const startInput = document.getElementById('route-start-address');
+    const endInput = document.getElementById('route-end-address');
+    startInput?.addEventListener('input', async e => {
+        startAddressResults = await getAddressSuggestions(e.target.value);
+        const list = document.getElementById('start-address-suggestions');
+        if (list) {
+            list.innerHTML = '';
+            startAddressResults.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.display;
+                list.appendChild(opt);
+            });
+        }
+    });
+    endInput?.addEventListener('input', async e => {
+        endAddressResults = await getAddressSuggestions(e.target.value);
+        const list = document.getElementById('end-address-suggestions');
+        if (list) {
+            list.innerHTML = '';
+            endAddressResults.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.display;
+                list.appendChild(opt);
+            });
+        }
+    });
+}
 async function buildRouteFromAddresses() {
     const startAddr = document.getElementById('route-start-address')?.value.trim();
     const endAddr = document.getElementById('route-end-address')?.value.trim();
     const resultEl = document.getElementById('route-plan-result');
+    const spinner = document.getElementById('route-plan-spinner');
+    const spinner = document.getElementById('route-plan-spinner');
     if (!startAddr || !endAddr || !resultEl) return;
     resultEl.textContent = 'Searching...';
 
-    const startCoord = await geocodeAddress(startAddr);
-    const endCoord = await geocodeAddress(endAddr);
+    let startCoord = getCoordsFromInput(startAddr, 'start');
+    let endCoord = getCoordsFromInput(endAddr, 'end');
+    if (!startCoord) startCoord = await geocodeAddress(startAddr);
+    if (!endCoord) endCoord = await geocodeAddress(endAddr);
     if (!startCoord || !endCoord) { resultEl.textContent = 'Address not found.'; return; }
 
-    const startStop = findNearestStop(startCoord.lat, startCoord.lon);
-    const endStop = findNearestStop(endCoord.lat, endCoord.lon);
-    if (!startStop || !endStop) { resultEl.textContent = 'No nearby stops.'; return; }
-
-    document.getElementById('route-plan-start').value = startStop.stop_id;
-    document.getElementById('route-plan-end').value = endStop.stop_id;
-
-    if (routePlannerStartMarker) map.removeLayer(routePlannerStartMarker);
-    if (routePlannerEndMarker) map.removeLayer(routePlannerEndMarker);
-    routePlannerStartMarker = createStopMarker(startStop);
-    routePlannerEndMarker = createStopMarker(endStop);
-    const startDot = routePlannerStartMarker.getElement()?.querySelector('.stop-marker-dot');
-    if (startDot) startDot.classList.add('route-planner-start');
-    const endDot = routePlannerEndMarker.getElement()?.querySelector('.stop-marker-dot');
-    if (endDot) endDot.classList.add('route-planner-end');
-    map.addLayer(routePlannerStartMarker);
-    map.addLayer(routePlannerEndMarker);
-
-    buildRouteBetweenStops();
-    resultEl.textContent = `From ${startStop.stop_name} to ${endStop.stop_name}`;
+    buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr);
 }
 
 
-function buildRouteBetweenStops() {
-    const startId = document.getElementById('route-plan-start')?.value;
-    const endId = document.getElementById('route-plan-end')?.value;
+function buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr) {
     const resultEl = document.getElementById('route-plan-result');
     const optionsEl = document.getElementById('route-plan-options');
     if (!startId || !endId || !resultEl || !optionsEl) return;
@@ -429,7 +493,8 @@ function drawRouteOption(option) {
     }
 }
 
-function resetFilters() {
+// Expose globally so initUI can attach handlers before the function definition
+window.resetFilters = function resetFilters() {
     if (isLiveBusViewActive) deactivateLiveBusView(true); 
     
     filters.direction = null; filters.street = null;

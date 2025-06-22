@@ -178,10 +178,17 @@ async function fetchWithRateLimit(url, options) {
     return fetch(url, options);
 }
 
+function fetchWithTimeout(resource, options = {}, timeout = 8000) {
+    return Promise.race([
+        fetch(resource, options),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+    ]);
+}
+
 async function geocodeAddress(address) {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', Winnipeg')}`;
     try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'mygtfs-app' } });
+        const res = await fetchWithTimeout(url, { headers: { 'User-Agent': 'mygtfs-app' } }, 8000);
         if (!res.ok) return null;
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -191,6 +198,26 @@ async function geocodeAddress(address) {
         console.error('Geocode error:', e);
     }
     return null;
+}
+
+async function getAddressSuggestions(query, limit = 5) {
+    if (!query || query.length < 3) return [];
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=${limit}&q=${encodeURIComponent(query + ', Winnipeg')}`;
+    try {
+        const res = await fetch(url, { headers: { 'User-Agent': 'mygtfs-app' } });
+        if (!res.ok) return [];
+        const data = await res.json();
+        if (Array.isArray(data)) {
+            return data.map(item => ({
+                display: item.display_name,
+                lat: parseFloat(item.lat),
+                lon: parseFloat(item.lon)
+            }));
+        }
+    } catch (e) {
+        console.error('Address suggestion error:', e);
+    }
+    return [];
 }
 
 function findNearestStop(lat, lon) {
@@ -203,4 +230,20 @@ function findNearestStop(lat, lon) {
         if (dist < minDist) { minDist = dist; nearest = stop; }
     });
     return nearest;
+}
+
+function findNearestStops(lat, lon, count = 1) {
+    if (!allLocalStops?.length) return [];
+    const point = L.latLng(lat, lon);
+    const arr = allLocalStops.map(stop => ({ stop, dist: point.distanceTo([stop.stop_lat, stop.stop_lon]) }));
+    arr.sort((a, b) => a.dist - b.dist);
+    return arr.slice(0, count).map(a => a.stop);
+}
+
+function findNearestStops(lat, lon, count = 1) {
+    if (!allLocalStops?.length) return [];
+    const point = L.latLng(lat, lon);
+    const arr = allLocalStops.map(stop => ({ stop, dist: point.distanceTo([stop.stop_lat, stop.stop_lon]) }));
+    arr.sort((a, b) => a.dist - b.dist);
+    return arr.slice(0, count).map(a => a.stop);
 }

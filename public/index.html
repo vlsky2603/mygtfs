@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0f2f5">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -134,13 +137,21 @@
             </div>
         </div>
         <div class="panel-content" style="padding: 15px; display: flex; flex-direction: column; gap: 12px;">
-                        <label for="route-start-address">From Address:</label>
-            <input id="route-start-address" class="route-plan-input" type="text" placeholder="802 Saint Paul Avenue">
+            <label for="route-start-address">From Address:</label>
+            <input id="route-start-address" list="start-address-suggestions" class="route-plan-input" type="text" placeholder="802 Saint Paul Avenue">
+            <datalist id="start-address-suggestions"></datalist>
+            <label for="route-start-address">From Address:</label>
+            <input id="route-start-address" list="start-address-suggestions" class="route-plan-input" type="text" placeholder="802 Saint Paul Avenue">
+            <datalist id="start-address-suggestions"></datalist>
             <label for="route-end-address">To Address:</label>
-            <input id="route-end-address" class="route-plan-input" type="text" placeholder="20 El Tassi Drive">
+            <input id="route-end-address" list="end-address-suggestions" class="route-plan-input" type="text" placeholder="20 El Tassi Drive">
+            <datalist id="end-address-suggestions"></datalist>
+            <input id="route-end-address" list="end-address-suggestions" class="route-plan-input" type="text" placeholder="20 El Tassi Drive">
+            <datalist id="end-address-suggestions"></datalist>
             <select id="route-plan-start" class="route-plan-input" style="display:none;"></select>
             <select id="route-plan-end" class="route-plan-input" style="display:none;"></select>
             <button id="build-route-button" class="control-button primary">Build Route</button>
+            <div id="route-plan-spinner" class="route-plan-spinner" style="display:none;"></div>
             <div id="route-plan-result" class="route-plan-result"></div>
             <div id="route-plan-options" class="route-plan-options"></div>
         </div>
@@ -188,6 +199,8 @@
     <div id="toast-notifications"></div>
     
     <!-- Внешние библиотеки -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     
