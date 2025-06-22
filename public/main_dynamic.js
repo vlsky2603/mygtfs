@@ -103,7 +103,7 @@ function initMap() {
         if (radiusCircle) radiusCircle.setLatLng(map.getCenter());
     });
     map.on('moveend', () => {
-        clearTimeout(debounceTimeout);
+         clearTimeout(debounceTimeout);
         debounceTimeout = setTimeout(() => { if (allLocalStops.length > 0 && !filters.route && !isLiveBusViewActive) refreshMarkers(map.getCenter()); }, 250);
         const circlePath = radiusCircle.getElement();
         if (circlePath) { circlePath.classList.remove('radius-circle-path-settle'); void circlePath.offsetWidth; circlePath.classList.add('radius-circle-path-settle'); }
@@ -128,6 +128,10 @@ function initUI() {
     
     document.getElementById('regular-notifications-toggle-button')?.addEventListener('click', () => togglePanel('regular-notifications-panel'));
     document.getElementById('close-regular-notifications-panel')?.addEventListener('click', () => closeRegularNotificationsPanel());
+
+    document.getElementById('route-planner-toggle')?.addEventListener('click', () => togglePanel('route-planner-panel'));
+    document.getElementById('close-route-planner')?.addEventListener('click', () => closeRoutePlannerPanel());
+    document.getElementById('build-route-button')?.addEventListener('click', buildRouteBetweenStops);
     
     document.getElementById('direction-filter')?.addEventListener('change', e => { filters.direction = e.target.value || null; if (filters.route && !isLiveBusViewActive) showRouteAndBuses(filters.route); else if (!isLiveBusViewActive) refreshMarkers(map.getCenter()); });
     document.getElementById('street-search')?.addEventListener('input', updateStreetSearch);
@@ -147,6 +151,10 @@ function initUI() {
     enableSwipeToClose('filter-panel', () => closeFilterPanel());
     enableSwipeToClose('favorites-panel', () => closeFavoritesPanel());
     enableSwipeToClose('regular-notifications-panel', () => closeRegularNotificationsPanel());
+<<<<<<< HEAD
+=======
+    enableSwipeToClose('route-planner-panel', () => closeRoutePlannerPanel());
+>>>>>>> e625b55 (Обновления UI и логики GTFS)
 }
 
 
@@ -243,7 +251,7 @@ function handleResetRoute() {
         deactivateLiveBusView(true); 
     } else {
         filters.route = null;
-        const routeFilterSelect = document.getElementById('route-filter');
+         const routeFilterSelect = document.getElementById('route-filter');
         if (routeFilterSelect) routeFilterSelect.value = '';
         clearPreviousRouteDrawing();
         routeStopMarkersLayerGroup.clearLayers();
@@ -268,6 +276,42 @@ function handleResetRoute() {
     map.closePopup();
 }
 
+function buildRouteBetweenStops() {
+    const startId = document.getElementById('route-plan-start')?.value;
+    const endId = document.getElementById('route-plan-end')?.value;
+    const resultEl = document.getElementById('route-plan-result');
+    if (!startId || !endId || !resultEl) return;
+
+    if (currentRoutePolyline) { map.removeLayer(currentRoutePolyline); currentRoutePolyline = null; }
+
+    let foundTrip = null;
+    for (const tripId in gtfsData.tripToStops) {
+        const stops = gtfsData.tripToStops[tripId];
+        const startIndex = stops.findIndex(s => String(s.stop_id) === String(startId));
+        const endIndex = stops.findIndex(s => String(s.stop_id) === String(endId));
+        if (startIndex >= 0 && endIndex > startIndex) { foundTrip = { tripId, startIndex, endIndex }; break; }
+    }
+
+    if (!foundTrip) { resultEl.textContent = 'No direct route found.'; return; }
+    const trip = gtfsData.trips.find(t => t.trip_id === foundTrip.tripId);
+    if (!trip) { resultEl.textContent = 'Trip data missing.'; return; }
+
+    const shapeId = trip.shape_id;
+    const shape = gtfsData.shapes[shapeId];
+    if (shape) {
+        const poly = shape.map(p => [p.lat, p.lon]);
+        currentRoutePolyline = L.polyline(poly, { color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(), weight: 5 }).addTo(map);
+        map.fitBounds(currentRoutePolyline.getBounds(), { padding: [50,50] });
+    }
+
+    const startStopTime = gtfsData.tripToStops[foundTrip.tripId][foundTrip.startIndex];
+    const endStopTime = gtfsData.tripToStops[foundTrip.tripId][foundTrip.endIndex];
+    const serviceDate = determineSimulationTimeUTC();
+    const startDeparture = getDatetimeForGtfsTime(gtfsTimeToSeconds(startStopTime.departure_time), serviceDate);
+    const endArrival = getDatetimeForGtfsTime(gtfsTimeToSeconds(endStopTime.arrival_time), serviceDate);
+    resultEl.textContent = `Departs ${startDeparture.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}, arrives ${endArrival.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+}
+
 function resetFilters() {
     if (isLiveBusViewActive) deactivateLiveBusView(true); 
     
@@ -283,6 +327,16 @@ function resetFilters() {
         if (previousStopContextForReturn) { 
             map.setView(previousStopContextForReturn.latlng, previousStopContextForReturn.zoom, { animate: true });
             const originalStopData = allLocalStops.find(s => String(s.stop_id) === String(previousStopContextForReturn.stop_id));
+            if (originalStopData) {
+                 showSchedulePanel(originalStopData);
+            }
+        } else {
+            refreshMarkers(map.getCenter());
+        }
+    } else if (previousStopContextForReturn) { 
+         map.setView(previousStopContextForReturn.latlng, previousStopContextForReturn.zoom, { animate: true });
+         const originalStopData = allLocalStops.find(s => String(s.stop_id) === String(previousStopContextForReturn.stop_id));
+         if (originalStopData) {
             if (originalStopData) {
                  showSchedulePanel(originalStopData);
             }
@@ -762,7 +816,7 @@ async function showSchedulePanel(stop) {
             if (scheduleItemsContainer.children.length === 0 && scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule">${getRandomNoScheduleMessage()} <small>(No displayable services)</small></div>`;
             
             scheduleCountdownIntervalId = setInterval(updateScheduleCountdown, SCHEDULE_COUNTDOWN_INTERVAL);
-            scheduleApiRefreshIntervalId = setInterval(refreshScheduleApiData, SCHEDULE_API_REFRESH_INTERVAL);
+                        scheduleApiRefreshIntervalId = setInterval(refreshScheduleApiData, SCHEDULE_API_REFRESH_INTERVAL);
         } else {
             if (scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule">${getRandomNoScheduleMessage()}${scheduleJson?.message ? ' <small>(' + scheduleJson.message + ')</small>' : ''}</div>`;
             if (simulatedBusesLayerGroup) simulatedBusesLayerGroup.clearLayers(); activeSimulatedBuses = {};
@@ -787,6 +841,7 @@ document.addEventListener('click', function (e) {
     const schedulePanel = document.getElementById('schedule-panel');
     const favoritesPanel = document.getElementById('favorites-panel');
     const regularNotificationsPanel = document.getElementById('regular-notifications-panel');
+    const routePlannerPanel = document.getElementById('route-planner-panel');
     const ruleEditorModal = document.getElementById('rule-editor-modal');
 
     if (filterPanel?.classList.contains('active') && !filterPanel.contains(e.target) && !e.target.closest('#filter-toggle')) closeFilterPanel();
@@ -798,9 +853,13 @@ document.addEventListener('click', function (e) {
     }
 
     if (favoritesPanel?.classList.contains('active') && !favoritesPanel.contains(e.target) && !e.target.closest('#favorites-toggle')) closeFavoritesPanel();
-    
+
     if (regularNotificationsPanel?.classList.contains('active') && !regularNotificationsPanel.contains(e.target) && !e.target.closest('#regular-notifications-toggle-button') && !ruleEditorModal?.classList.contains('modal-visible')) {
         closeRegularNotificationsPanel();
+    }
+
+    if (routePlannerPanel?.classList.contains('active') && !routePlannerPanel.contains(e.target) && !e.target.closest('#route-planner-toggle')) {
+        closeRoutePlannerPanel();
     }
 });
 

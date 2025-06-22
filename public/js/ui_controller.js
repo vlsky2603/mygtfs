@@ -118,6 +118,27 @@ function populateStreetFilter() {
     });
 }
 
+function populateRoutePlannerStops() {
+    const startSelect = document.getElementById('route-plan-start');
+    const endSelect = document.getElementById('route-plan-end');
+    if (!startSelect || !endSelect) return;
+    while (startSelect.options.length > 0) startSelect.remove(0);
+    while (endSelect.options.length > 0) endSelect.remove(0);
+    if (allLocalStops.length === 0) return;
+    const fragmentStart = document.createDocumentFragment();
+    const fragmentEnd = document.createDocumentFragment();
+    allLocalStops.forEach(stop => {
+        const optStart = document.createElement('option');
+        optStart.value = stop.stop_id;
+        optStart.text = `${stop.stop_name} (#${stop.stop_id})`;
+        const optEnd = optStart.cloneNode(true);
+        fragmentStart.appendChild(optStart);
+        fragmentEnd.appendChild(optEnd);
+    });
+    startSelect.appendChild(fragmentStart);
+    endSelect.appendChild(fragmentEnd);
+}
+
 function updateStreetSearch(e) {
     const term = e.target.value.toLowerCase();
     const streetSelect = document.getElementById('street-filter');
@@ -153,6 +174,7 @@ function togglePanel(panelId) {
 function closeFilterPanel(removeBlur = true) { closePanel('filter-panel', removeBlur); }
 function closeFavoritesPanel(removeBlur = true) { closePanel('favorites-panel', removeBlur); }
 function closeRegularNotificationsPanel(removeBlur = true) { closePanel('regular-notifications-panel', removeBlur); closeRuleEditor(); }
+function closeRoutePlannerPanel(removeBlur = true) { closePanel('route-planner-panel', removeBlur); }
 function closeSchedulePanel(removeBlur = true) {
     const panel = document.getElementById('schedule-panel');
     if (panel) { panel.classList.remove('active'); panel.style.maxHeight = ''; }
@@ -179,4 +201,8 @@ function enableSwipeToClose(panelId, closeFn) {
         }
     });
     panel.addEventListener('touchend', () => { startY = null; });
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> e625b55 (Обновления UI и логики GTFS)

@@ -39,7 +39,7 @@ function formatArrivalTime(sStopTimes, nowForFormattingUTC) {
     const timestamp = targetTimeUTC.getTime();
     const min = Math.round(diffSeconds / 60);
 
-    if (min < -10) return { text: '', css: '', timestamp: Infinity };
+     if (min < -10) return { text: '', css: '', timestamp: Infinity };
     let cssClass = '', displayText = '';
     if (min <= 1 && min >= -5) { displayText = 'Now'; cssClass = 'now'; }
     else if (min > 1 && min < 60) { displayText = `${min} min`; cssClass = ''; }
@@ -176,4 +176,8 @@ async function fetchWithRateLimit(url, options) {
     }
     recordApiRequest();
     return fetch(url, options);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> e625b55 (Обновления UI и логики GTFS)

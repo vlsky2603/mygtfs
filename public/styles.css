@@ -35,7 +35,7 @@
 /* 2. АНИМАЦИЯ ФОНА */
 @keyframes aurora-animation { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 body::before { content: ''; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; background: linear-gradient(125deg, hsla(var(--primary-hue), 90%, 60%, 0.15), hsla(180, 90%, 60%, 0.15)); background-size: 400% 400%; animation: aurora-animation 25s ease infinite; }
-.dark-mode body::before { background: linear-gradient(125deg, hsla(var(--primary-hue), 90%, 50%, 0.2), hsla(260, 90%, 50%, 0.2)); background-size: 400% 400%; animation: aurora-animation 20s ease infinite; }
+.dark-mode body::before { background: linear-gradient(125deg, hsla(var(--primary-hue), 90%, 50%, 0.1), hsla(260, 90%, 50%, 0.1)); background-size: 400% 400%; animation: aurora-animation 20s ease infinite; }
 
 /* 3. ОСНОВНЫЕ СТИЛИ И ЭФФЕКТ ФОКУСА */
 body { margin: 0; padding: 0; font-family: var(--font-family-base); background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s ease, color 0.3s ease; font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; overflow: hidden; }
@@ -44,7 +44,7 @@ body { margin: 0; padding: 0; font-family: var(--font-family-base); background-c
 body:has(.panel.active) #map,
 body:has(#rule-editor-modal.modal-visible) #map {
     transform: scale(0.95);
-    filter: blur(8px) brightness(0.9);
+    filter: blur(8px);
     border-radius: 30px;
     overflow: hidden;
     box-shadow: 0 0 50px rgba(0,0,0,0.2);
@@ -52,7 +52,11 @@ body:has(#rule-editor-modal.modal-visible) #map {
 }
 .dark-mode body:has(.panel.active) #map,
 body.dark-mode:has(#rule-editor-modal.modal-visible) #map {
+<<<<<<< HEAD
     filter: blur(8px) brightness(0.6);
+=======
+    filter: blur(8px);
+>>>>>>> e625b55 (Обновления UI и логики GTFS)
 }
 
 /* 4. КИНЕТИЧЕСКИЙ ОСТРОВ И LIVE ACTIVITY */
@@ -408,4 +412,24 @@ body:has(#rule-editor-modal.modal-visible) #live-activity-container {
     margin-top: 10px;
 }
 
+<<<<<<< HEAD
+=======
+/* --------------------------------------------------------- */
+/*    ROUTE PLANNER STYLES                                   */
+/* --------------------------------------------------------- */
+.route-plan-input {
+    width: 100%;
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 1rem;
+}
+
+.route-plan-result {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+}
+
+>>>>>>> e625b55 (Обновления UI и логики GTFS)
 

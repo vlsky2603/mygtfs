@@ -238,7 +238,7 @@ app.get('/api/stops/:stopId/schedule', async (req, res) => {
         // Кэшируем успешный ответ
         scheduleCache.set(cacheKey, { data });
         
-        res.json({ data });
+         res.json({ data });
 
     } catch (error) {
         console.error(`Backend: Internal server error for stop ${stopId}:`, error);

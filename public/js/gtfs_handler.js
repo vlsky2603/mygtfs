@@ -105,8 +105,9 @@ async function loadAndProcessGTFS() {
         if (regularNotificationRules.some(rule => rule.isEnabled)) {
             startRuleMonitor();
         }
-        populateStreetFilter(); 
-        refreshMarkers(map.getCenter()); 
+        populateStreetFilter();
+        populateRoutePlannerStops();
+        refreshMarkers(map.getCenter());
         hideLoadingOverlay();
 
     } catch (error) {

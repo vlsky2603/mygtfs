@@ -38,6 +38,9 @@
         <button id="regular-notifications-toggle-button" class="control-button" title="My Reminders">
             <i class="fas fa-bell"></i>
         </button>
+        <button id="route-planner-toggle" class="control-button" title="Route Planner">
+            <i class="fas fa-route"></i>
+        </button>
         <button id="location-button" class="control-button" title="My Location">
             <i class="fas fa-location-arrow"></i>
         </button>
@@ -121,6 +124,23 @@
         </div>
         <div class="panel-content">
             <div class="regular-notifications-list-container"></div>
+        </div>
+    </div>
+
+    <div id="route-planner-panel" class="panel">
+        <div class="panel-header">
+            <h3>Route Planner</h3>
+            <div class="panel-actions">
+                <button id="close-route-planner" class="control-button"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="panel-content" style="padding: 15px; display: flex; flex-direction: column; gap: 12px;">
+            <label for="route-plan-start">From Stop:</label>
+            <select id="route-plan-start" class="route-plan-input"></select>
+            <label for="route-plan-end">To Stop:</label>
+            <select id="route-plan-end" class="route-plan-input"></select>
+            <button id="build-route-button" class="control-button primary">Build Route</button>
+            <div id="route-plan-result" class="route-plan-result"></div>
         </div>
     </div>
 
