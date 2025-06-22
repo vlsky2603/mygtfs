@@ -119,14 +119,62 @@ function isUpdatedToday() {
         lastUpdated.getDate() === today.getDate();
 }
 
-new CronJob( '0 3 * * *', async () => { console.log('Cron job triggered: Starting daily stops data update...'); await updateAllStopsData(); }, null, true, 'America/Winnipeg' );
-function getDistance(lat1, lon1, lat2, lon2) { /* ... ваш код ... */ return 0; }
-async function updateAllStopsData() { /* ... ваш код ... */ }
+new CronJob('0 3 * * *', async () => {
+    console.log('Cron job triggered: Starting daily stops data update...');
+    await updateAllStopsData();
+}, null, true, 'America/Winnipeg');
+
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // meters
+    const toRad = deg => deg * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+async function updateAllStopsData() {
+    // Placeholder for data update logic
+    console.log('updateAllStopsData not implemented, skipping.');
+}
 
 // --- API Маршруты ---
 
-app.get('/api/time', (req, res) => { /* ... ваш код ... */ });
-app.get('/api/stops/nearby', (req, res) => { /* ... ваш код ... */ });
+app.get('/api/time', (req, res) => {
+    if (!cachedWinnipegTime.data) {
+        return res.status(503).json({
+            error: 'Time service is not ready. Awaiting first sync.',
+            unixtime: Math.floor(Date.now() / 1000),
+            utc_offset: cachedWinnipegTime.utcOffsetString,
+            source: 'error-no-cache'
+        });
+    }
+
+    const elapsedSeconds = Math.floor((Date.now() - cachedWinnipegTime.lastFetched) / 1000);
+    const currentCorrectUnixtime = cachedWinnipegTime.data.unixtime + elapsedSeconds;
+
+    res.json({
+        ...cachedWinnipegTime.data,
+        unixtime: currentCorrectUnixtime,
+        source: 'live-calculated'
+    });
+});
+
+app.get('/api/stops/nearby', (req, res) => {
+    const { lat, lon, radius = 500 } = req.query;
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+    const radiusNum = parseFloat(radius);
+    if (isNaN(latNum) || isNaN(lonNum)) {
+        return res.status(400).json({ error: 'lat and lon query parameters are required' });
+    }
+    const nearby = stopsData.stops.filter(stop => {
+        return getDistance(latNum, lonNum, stop.stop_lat, stop.stop_lon) <= radiusNum;
+    });
+    res.json({ stops: nearby });
+});
 
 
 // ===================================================================

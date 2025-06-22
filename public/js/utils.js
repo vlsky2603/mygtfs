@@ -64,13 +64,7 @@ function formatArrivalTime(sStopTimes, nowForFormattingUTC) {
     return { text: displayText, css: cssClass.trim(), timestamp };
 }
 
-const loadingMessages = [ "Warming up the buses...", "Checking Portage & Main for stragglers...", "Navigating the North End maze...", "Counting bison... I mean, stops...", "Avoiding a 'Winnipeg handshake'...", "Finding the Forks, one stop at a time...", "Plotting routes, eh? Almost social-worthy!", "Don't be a snowbird, your data is coming!", "Almost there, buddy guy! Just a sec.", "Friendly Manitoba is loading your transit data!" ];
-let lastLoadingMessageIndex = -1;
-function getRandomLoadingMessage() { let randomIndex; do { randomIndex = Math.floor(Math.random() * loadingMessages.length); } while (randomIndex === lastLoadingMessageIndex && loadingMessages.length > 1); lastLoadingMessageIndex = randomIndex; return loadingMessages[randomIndex]; }
-
-const scheduleWaitingMessages = [ "Consulting the transit spirits...", "Hold your toques, fetching times!", "Our hamsters are pedaling furiously for your schedule!", "Just a sec, asking the bus nicely if it's on time...", "Is it colder than a Winnipeg winter out there? We'll get your bus times soon!", "Polishing the Peggo card reader... and your schedule!", "Patience, young mosquito! The bus schedule is buzzing in.", "Recalibrating the Slurpee machine... Oh, and schedules.", "Wrangling the data like a true Manitoban cowboy!" ];
-let lastScheduleWaitingMessageIndex = -1;
-function getRandomScheduleWaitingMessage() { let randomIndex; do { randomIndex = Math.floor(Math.random() * scheduleWaitingMessages.length); } while (randomIndex === lastScheduleWaitingMessageIndex && scheduleWaitingMessages.length > 1); lastWaitingMessageIndex = randomIndex; return scheduleWaitingMessages[randomIndex]; }
+// Random loading messages removed for cleaner UI
 
 const noScheduleMessages = [ "Looks like the buses are taking a nap here!", "No upcoming buses... time for a Portage Ave stroll?", "This stop is quiet. Too quiet. Maybe a coffee at Timmies?", "Is the bus playing hide and seek? Or just stuck on Pembina?", "Zilch. Nada. No buses soon, sorry eh.", "Even the Goldeyes have more action right now.", "Did a moose eat the schedule for this stop?", "This stop's as empty as the Jets' trophy case... (kidding, mostly!)", "Perhaps it's time to embrace the 'Winterpeg' walk?" ];
 let lastNoScheduleMessageIndex = -1;
@@ -81,4 +75,105 @@ function isIOS() {
     'iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'
   ].includes(navigator.platform)
   || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+}
+
+// -------------------------------------------------------------------
+//    Geometry Helpers
+// -------------------------------------------------------------------
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // meters
+    const toRad = deg => deg * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function interpolateOnPolyline(polyline, progress) {
+    if (!polyline || polyline.length === 0) return null;
+    if (polyline.length === 1) {
+        const p = polyline[0];
+        return Array.isArray(p) ? { lat: p[0], lng: p[1] } : { lat: p.lat, lng: p.lng };
+    }
+    const points = polyline.map(p => Array.isArray(p) ? { lat: p[0], lng: p[1] } : p);
+    progress = Math.max(0, Math.min(1, progress));
+    const segmentLengths = [];
+    let total = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+        const len = getDistance(points[i].lat, points[i].lng, points[i + 1].lat, points[i + 1].lng);
+        segmentLengths.push(len);
+        total += len;
+    }
+    let dist = total * progress;
+    for (let i = 0; i < segmentLengths.length; i++) {
+        const segLen = segmentLengths[i];
+        if (dist <= segLen) {
+            const ratio = segLen === 0 ? 0 : dist / segLen;
+            return {
+                lat: points[i].lat + (points[i + 1].lat - points[i].lat) * ratio,
+                lng: points[i].lng + (points[i + 1].lng - points[i].lng) * ratio
+            };
+        }
+        dist -= segLen;
+    }
+    return points[points.length - 1];
+}
+
+// -------------------------------------------------------------------
+//    Local Storage Caching Helpers
+// -------------------------------------------------------------------
+const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 1 day
+
+function saveToCache(key, data) {
+    if (!window.localStorage) return;
+    const item = { timestamp: Date.now(), data };
+    localStorage.setItem(key, JSON.stringify(item));
+}
+
+function getFromCache(key) {
+    if (!window.localStorage) return null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+        const item = JSON.parse(raw);
+        if (Date.now() - item.timestamp > CACHE_EXPIRY_MS) {
+            localStorage.removeItem(key);
+            return null;
+        }
+        return item.data;
+    } catch (e) {
+        localStorage.removeItem(key);
+        return null;
+    }
+}
+
+// -------------------------------------------------------------------
+//    Simple Rate Limiter for API requests
+// -------------------------------------------------------------------
+const ONE_MINUTE_MS = 60 * 1000;
+const MAX_REQUESTS_PER_MINUTE = 30;
+let apiRequestTimestamps = [];
+
+function recordApiRequest() {
+    apiRequestTimestamps.push(Date.now());
+    apiRequestTimestamps = apiRequestTimestamps.filter(ts => Date.now() - ts < ONE_MINUTE_MS);
+}
+
+function canMakeApiRequest() {
+    apiRequestTimestamps = apiRequestTimestamps.filter(ts => Date.now() - ts < ONE_MINUTE_MS);
+    return apiRequestTimestamps.length < MAX_REQUESTS_PER_MINUTE;
+}
+
+async function fetchWithRateLimit(url, options) {
+    if (!canMakeApiRequest()) {
+        return {
+            ok: false,
+            status: 429,
+            json: async () => ({ error: 'Rate limit exceeded' })
+        };
+    }
+    recordApiRequest();
+    return fetch(url, options);
 }
