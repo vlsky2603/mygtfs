@@ -307,3 +307,98 @@ body:has(#schedule-panel.active) #live-activity-container {
     font-size: 1.1em;
 }
 
+/* -------------------------------------------------------------- */
+/*    Schedule Loading & Radius Label                             */
+/* -------------------------------------------------------------- */
+.loading-schedule {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+    gap: 12px;
+    color: var(--text-secondary-color);
+}
+
+.schedule-loading-animation-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+#radius-label {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: var(--panel-blur);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.9em;
+    color: var(--text-color);
+    z-index: 1200;
+    pointer-events: none;
+}
+
+/* -------------------------------------------------------------- */
+/*    Reminder Rule Editor Modal                                  */
+/* -------------------------------------------------------------- */
+#rule-editor-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+#rule-editor-modal.modal-hidden {
+    display: none;
+}
+
+#rule-editor-modal.modal-visible {
+    display: flex;
+}
+
+#rule-editor-modal .modal-content {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: var(--panel-blur);
+    box-shadow: var(--panel-shadow);
+    padding: 20px;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    color: var(--text-color);
+}
+
+.rule-editor-input {
+    width: 100%;
+    margin: 4px 0 10px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.rule-editor-days {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.rule-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+

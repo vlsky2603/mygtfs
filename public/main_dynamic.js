@@ -524,7 +524,7 @@ async function showSchedulePanel(stop) {
     headerActionsWrapper.appendChild(closeButton);
 
     panel.style.maxHeight = '360px';
-    if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="loading-schedule"><div class="schedule-loading-animation-area"><div class="loading-spinner"></div></div><span>${getRandomScheduleWaitingMessage()}</span></div>`;
+    if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="loading-schedule"><div class="schedule-loading-animation-area"><div class="loading-spinner"></div></div><span>Loading schedule...</span></div>`;
     
     showTopProgressBar();
     try {

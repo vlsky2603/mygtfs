@@ -8,7 +8,7 @@ const loadingAnimationContainer = loadingOverlay?.querySelector('.loading-animat
 
 function showLoadingOverlay(message) {
     if (loadingOverlay) {
-        if (loadingOverlayTextSpan) loadingOverlayTextSpan.textContent = message || getRandomLoadingMessage();
+        if (loadingOverlayTextSpan) loadingOverlayTextSpan.textContent = message || 'Loading...';
         if (loadingAnimationContainer && !loadingAnimationContainer.querySelector('.loading-spinner')) {
             loadingAnimationContainer.innerHTML = '<div class="loading-spinner"></div>';
         }

@@ -50,7 +50,7 @@ async function loadAndProcessGTFS() {
 
         allLocalStops.forEach(s => { gtfsData.stopDetails[s.stop_id] = s; });
         
-        showLoadingOverlay(getRandomLoadingMessage()); 
+        showLoadingOverlay("Loading additional data...");
 
         const [routesRes, tripsRes, shapesRes, stopTimesRes] = await Promise.all([
             fetch('./gtfs/routes.txt'), fetch('./gtfs/trips.txt'), fetch('./gtfs/shapes.txt'),

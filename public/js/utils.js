@@ -64,20 +64,7 @@ function formatArrivalTime(sStopTimes, nowForFormattingUTC) {
     return { text: displayText, css: cssClass.trim(), timestamp };
 }
 
-const loadingMessages = [ "Warming up the buses...", "Checking Portage & Main for stragglers...", "Navigating the North End maze...", "Counting bison... I mean, stops...", "Avoiding a 'Winnipeg handshake'...", "Finding the Forks, one stop at a time...", "Plotting routes, eh? Almost social-worthy!", "Don't be a snowbird, your data is coming!", "Almost there, buddy guy! Just a sec.", "Friendly Manitoba is loading your transit data!" ];
-let lastLoadingMessageIndex = -1;
-function getRandomLoadingMessage() { let randomIndex; do { randomIndex = Math.floor(Math.random() * loadingMessages.length); } while (randomIndex === lastLoadingMessageIndex && loadingMessages.length > 1); lastLoadingMessageIndex = randomIndex; return loadingMessages[randomIndex]; }
-
-const scheduleWaitingMessages = [ "Consulting the transit spirits...", "Hold your toques, fetching times!", "Our hamsters are pedaling furiously for your schedule!", "Just a sec, asking the bus nicely if it's on time...", "Is it colder than a Winnipeg winter out there? We'll get your bus times soon!", "Polishing the Peggo card reader... and your schedule!", "Patience, young mosquito! The bus schedule is buzzing in.", "Recalibrating the Slurpee machine... Oh, and schedules.", "Wrangling the data like a true Manitoban cowboy!" ];
-let lastScheduleWaitingMessageIndex = -1;
-function getRandomScheduleWaitingMessage() {
-    let randomIndex;
-    do {
-        randomIndex = Math.floor(Math.random() * scheduleWaitingMessages.length);
-    } while (randomIndex === lastScheduleWaitingMessageIndex && scheduleWaitingMessages.length > 1);
-    lastScheduleWaitingMessageIndex = randomIndex;
-    return scheduleWaitingMessages[randomIndex];
-}
+// Random loading messages removed for cleaner UI
 
 const noScheduleMessages = [ "Looks like the buses are taking a nap here!", "No upcoming buses... time for a Portage Ave stroll?", "This stop is quiet. Too quiet. Maybe a coffee at Timmies?", "Is the bus playing hide and seek? Or just stuck on Pembina?", "Zilch. Nada. No buses soon, sorry eh.", "Even the Goldeyes have more action right now.", "Did a moose eat the schedule for this stop?", "This stop's as empty as the Jets' trophy case... (kidding, mostly!)", "Perhaps it's time to embrace the 'Winterpeg' walk?" ];
 let lastNoScheduleMessageIndex = -1;
