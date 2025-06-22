@@ -142,6 +142,11 @@ function initUI() {
     document.getElementById('save-rule-button')?.addEventListener('click', saveRuleFromEditor);
     document.getElementById('cancel-rule-button')?.addEventListener('click', closeRuleEditor);
     document.getElementById('rule-stop-select')?.addEventListener('change', onRuleEditorStopChange);
+
+    enableSwipeToClose('schedule-panel', () => closeSchedulePanel());
+    enableSwipeToClose('filter-panel', () => closeFilterPanel());
+    enableSwipeToClose('favorites-panel', () => closeFavoritesPanel());
+    enableSwipeToClose('regular-notifications-panel', () => closeRegularNotificationsPanel());
 }
 
 
@@ -492,7 +497,6 @@ async function showSchedulePanel(stop) {
         schedulePanelTitle.title = `${stop.stop_name || `Stop #${stop.stop_id}`} (ID: ${stop.stop_id})`;
     }
     panel.classList.add('active');
-    document.getElementById('map')?.classList.add('map-blur');
     closeFilterPanel(false); closeFavoritesPanel(false); closeRegularNotificationsPanel(false);
 
     let headerActionsWrapper = panelHeader.querySelector('.header-actions-wrapper');

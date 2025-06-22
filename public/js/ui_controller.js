@@ -128,10 +128,6 @@ function updateStreetSearch(e) {
 function closePanel(panelId, removeBlur = true) {
     const panel = document.getElementById(panelId);
     if(panel) panel.classList.remove('active');
-
-    if (removeBlur && !document.getElementById('schedule-panel')?.classList.contains('active') && !document.getElementById('filter-panel')?.classList.contains('active') && !document.getElementById('favorites-panel')?.classList.contains('active') && !document.getElementById('regular-notifications-panel')?.classList.contains('active')) {
-        document.getElementById('map')?.classList.remove('map-blur');
-    }
 }
 
 function togglePanel(panelId) {
@@ -139,7 +135,7 @@ function togglePanel(panelId) {
     if (!panel) return;
     const isActive = panel.classList.toggle('active');
     
-    document.getElementById('map')?.classList.toggle('map-blur', isActive || document.getElementById('schedule-panel')?.classList.contains('active') || document.getElementById('filter-panel')?.classList.contains('active') || document.getElementById('favorites-panel')?.classList.contains('active') || document.getElementById('regular-notifications-panel')?.classList.contains('active'));
+
     
     if (isActive) {
         if (panelId !== 'schedule-panel') closeSchedulePanel(false);
@@ -167,4 +163,20 @@ function closeSchedulePanel(removeBlur = true) {
     updateLiveActivity(null);
     if (scheduleCountdownIntervalId) clearInterval(scheduleCountdownIntervalId); scheduleCountdownIntervalId = null;
     if (scheduleApiRefreshIntervalId) clearInterval(scheduleApiRefreshIntervalId); scheduleApiRefreshIntervalId = null;
+}
+
+function enableSwipeToClose(panelId, closeFn) {
+    const panel = document.getElementById(panelId);
+    if (!panel || !('ontouchstart' in window)) return;
+    let startY = null;
+    panel.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
+    panel.addEventListener('touchmove', e => {
+        if (startY === null) return;
+        const diff = e.touches[0].clientY - startY;
+        if (diff > 80) {
+            startY = null;
+            closeFn();
+        }
+    });
+    panel.addEventListener('touchend', () => { startY = null; });
 }
