@@ -28,7 +28,6 @@
     </div>
     
     <div id="header-controls">
-        <div id="live-activity-container"></div>
         <button id="filter-toggle" class="control-button" title="Filters">
             <i class="fas fa-filter"></i>
         </button>
@@ -135,10 +134,12 @@
             </div>
         </div>
         <div class="panel-content" style="padding: 15px; display: flex; flex-direction: column; gap: 12px;">
-            <label for="route-plan-start">From Stop:</label>
-            <select id="route-plan-start" class="route-plan-input"></select>
-            <label for="route-plan-end">To Stop:</label>
-            <select id="route-plan-end" class="route-plan-input"></select>
+                        <label for="route-start-address">From Address:</label>
+            <input id="route-start-address" class="route-plan-input" type="text" placeholder="802 Saint Paul Avenue">
+            <label for="route-end-address">To Address:</label>
+            <input id="route-end-address" class="route-plan-input" type="text" placeholder="20 El Tassi Drive">
+            <select id="route-plan-start" class="route-plan-input" style="display:none;"></select>
+            <select id="route-plan-end" class="route-plan-input" style="display:none;"></select>
             <button id="build-route-button" class="control-button primary">Build Route</button>
             <div id="route-plan-result" class="route-plan-result"></div>
         </div>

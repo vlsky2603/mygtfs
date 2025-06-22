@@ -146,9 +146,18 @@ function updateStreetSearch(e) {
     Array.from(streetSelect.options).forEach(opt => { if (opt.value === "") { opt.style.display = 'block'; return; } opt.style.display = opt.text.toLowerCase().includes(term) ? 'block' : 'none'; });
 }
 
+function updateBodyPanelOpenClass() {
+    if (document.querySelector('.panel.active')) {
+        document.body.classList.add('panel-open');
+    } else {
+        document.body.classList.remove('panel-open');
+    }
+}
+
 function closePanel(panelId, removeBlur = true) {
     const panel = document.getElementById(panelId);
     if(panel) panel.classList.remove('active');
+    updateBodyPanelOpenClass();
 }
 
 function togglePanel(panelId) {
@@ -169,6 +178,7 @@ function togglePanel(panelId) {
     } else {
         if (panelId === 'regular-notifications-panel') closeRuleEditor();
     }
+    updateBodyPanelOpenClass();
 }
 
 function closeFilterPanel(removeBlur = true) { closePanel('filter-panel', removeBlur); }
@@ -201,8 +211,4 @@ function enableSwipeToClose(panelId, closeFn) {
         }
     });
     panel.addEventListener('touchend', () => { startY = null; });
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> e625b55 (Обновления UI и логики GTFS)

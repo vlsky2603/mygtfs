@@ -41,8 +41,8 @@ body::before { content: ''; position: fixed; top: 0; left: 0; width: 100vw; heig
 body { margin: 0; padding: 0; font-family: var(--font-family-base); background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s ease, color 0.3s ease; font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; overflow: hidden; }
 #map { height: 100vh; width: 100%; z-index: 1; background-color: var(--bg-color); transition: var(--transition-focus); }
 
-body:has(.panel.active) #map,
-body:has(#rule-editor-modal.modal-visible) #map {
+body.panel-open #map,
+body.modal-open #map {
     transform: scale(0.95);
     filter: blur(8px);
     border-radius: 30px;
@@ -50,13 +50,9 @@ body:has(#rule-editor-modal.modal-visible) #map {
     box-shadow: 0 0 50px rgba(0,0,0,0.2);
     pointer-events: none;
 }
-.dark-mode body:has(.panel.active) #map,
-body.dark-mode:has(#rule-editor-modal.modal-visible) #map {
-<<<<<<< HEAD
-    filter: blur(8px) brightness(0.6);
-=======
-    filter: blur(8px);
->>>>>>> e625b55 (Обновления UI и логики GTFS)
+.dark-mode body.panel-open #map,
+body.dark-mode.modal-open #map {
+   filter: blur(8px);
 }
 
 /* 4. КИНЕТИЧЕСКИЙ ОСТРОВ И LIVE ACTIVITY */
@@ -73,12 +69,9 @@ body.dark-mode:has(#rule-editor-modal.modal-visible) #map {
     border-radius: 100px;
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
-body:has(.panel.active) #header-controls,
-body:has(#rule-editor-modal.modal-visible) #header-controls {
-    width: 95%;
-    max-width: 400px;
-    border-radius: 24px;
-    gap: 0;
+body.panel-open #header-controls,
+body.modal-open #header-controls {
+    display: none
 }
 .control-button {
     position: relative; background: transparent; color: var(--text-secondary-color);
@@ -89,35 +82,20 @@ body:has(#rule-editor-modal.modal-visible) #header-controls {
     flex-shrink: 0;
 }
 .control-button:active { transform: scale(0.9); }
-body:has(.panel.active) .control-button:not(#reset-route-button),
-body:has(#rule-editor-modal.modal-visible) .control-button:not(#reset-route-button) {
+body.panel-open #header-controls .control-button:not(#reset-route-button),
+body.modal-open #header-controls .control-button:not(#reset-route-button) {
     opacity: 0; width: 0; margin: 0; padding: 0; pointer-events: none;
 }
 #reset-route-button { display: none; }
-body:has(.panel.active) #reset-route-button,
-body:has(#rule-editor-modal.modal-visible) #reset-route-button {
+body.panel-open #header-controls #reset-route-button,
+body.modal-open #header-controls #reset-route-button {
     position: absolute; top: 50%; right: 8px; transform: translateY(-50%); opacity: 0.7;
 }
-body:has(.panel.active) #reset-route-button:hover,
-body:has(#rule-editor-modal.modal-visible) #reset-route-button:hover { opacity: 1; }
-#live-activity-container {
-    display: flex; align-items: center; justify-content: space-between;
-    width: 0; padding: 0; opacity: 0; transform: scale(0.9);
-    transition: all 0.4s ease 0.1s; pointer-events: none; overflow: hidden; white-space: nowrap;
-}
-body:has(.panel.active) #live-activity-container,
-body:has(#rule-editor-modal.modal-visible) #live-activity-container {
-    width: 100%; padding: 0 16px; opacity: 1; transform: scale(1); pointer-events: auto;
-}
-.live-activity-content { display: flex; align-items: center; gap: 12px; }
-.live-route-number { font-size: 1.2em; font-weight: 700; background: var(--primary-color); color: white; border-radius: 8px; padding: 6px 10px; }
-.live-route-details { display: flex; flex-direction: column; text-align: left; }
-.live-route-headsign { font-weight: 600; color: var(--text-color); }
-.live-route-status { font-size: 0.9em; color: var(--text-secondary-color); }
-.live-arrival-time { font-size: 1.2em; font-weight: 700; color: var(--primary-color); }
+body.panel-open #header-controls #reset-route-button:hover,
+body.modal-open #header-controls #reset-route-button:hover { opacity: 1; }
 
 /* 5. ПАНЕЛИ */
-#filter-panel, #schedule-panel, #favorites-panel, #regular-notifications-panel {
+#filter-panel, #schedule-panel, #favorites-panel, #regular-notifications-panel, #route-planner-panel {
     position: fixed; left: 0; right: 0; bottom: 0;
     margin: 0 auto; width: 95%; max-width: 500px;
     background: var(--panel-bg); backdrop-filter: var(--panel-blur); -webkit-backdrop-filter: var(--panel-blur);
@@ -131,7 +109,7 @@ body:has(#rule-editor-modal.modal-visible) #live-activity-container {
     transform: translateY(0);
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 10px) + 10px) !important;
 }
-#filter-panel.active, #favorites-panel.active, #regular-notifications-panel.active {
+#filter-panel.active, #favorites-panel.active, #regular-notifications-panel.active, #route-planner-panel.active {
     transform: translateY(0);
     padding-bottom: env(safe-area-inset-bottom, 10px);
 }
@@ -147,6 +125,8 @@ body:has(#rule-editor-modal.modal-visible) #live-activity-container {
 .stop-marker-dot:active { transform: scale(1.2); }
 .stop-marker-dot.favorite-stop-on-map { border-color: var(--favorite-color); box-shadow: 0 0 10px var(--favorite-color); }
 .stop-marker-dot.live-origin-stop-marker { border-color: var(--success-color); background-color: var(--success-color); animation: pulse-live 2s infinite; }
+.stop-marker-dot.route-planner-start { border-color: var(--success-color); background-color: var(--success-color); }
+.stop-marker-dot.route-planner-end { border-color: var(--favorite-color); background-color: var(--favorite-color); }
 
 /* 7. ИКОНКА МЕСТОПОЛОЖЕНИЯ */
 .user-location-marker .user-dot { width: 20px; height: 20px; background-color: #007aff; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(0, 122, 255, 0.7); animation: pulse-user 2s infinite; }
@@ -411,9 +391,6 @@ body:has(#rule-editor-modal.modal-visible) #live-activity-container {
     gap: 10px;
     margin-top: 10px;
 }
-
-<<<<<<< HEAD
-=======
 /* --------------------------------------------------------- */
 /*    ROUTE PLANNER STYLES                                   */
 /* --------------------------------------------------------- */
@@ -431,5 +408,4 @@ body:has(#rule-editor-modal.modal-visible) #live-activity-container {
     color: var(--text-secondary-color);
 }
 
->>>>>>> e625b55 (Обновления UI и логики GTFS)
 

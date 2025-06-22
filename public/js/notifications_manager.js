@@ -302,6 +302,7 @@ function openRuleEditor(mode = 'add', ruleId = null, preselectedStopData = null)
         stopSelect.value = "";
     }
     modal.classList.remove('modal-hidden');
+    document.body.classList.add('modal-open');
     setTimeout(() => modal.classList.add('modal-visible'), 10);
 }
 
@@ -311,6 +312,7 @@ function openRuleEditorForEdit(ruleId) { openRuleEditor('edit', ruleId); }
 function closeRuleEditor() {
     const modal = document.getElementById('rule-editor-modal');
     modal.classList.remove('modal-visible');
+    document.body.classList.remove('modal-open');
     setTimeout(() => modal.classList.add('modal-hidden'), 300);
 }
 

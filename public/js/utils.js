@@ -176,8 +176,31 @@ async function fetchWithRateLimit(url, options) {
     }
     recordApiRequest();
     return fetch(url, options);
-<<<<<<< HEAD
 }
-=======
+
+async function geocodeAddress(address) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', Winnipeg')}`;
+    try {
+        const res = await fetch(url, { headers: { 'User-Agent': 'mygtfs-app' } });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+            return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        }
+    } catch (e) {
+        console.error('Geocode error:', e);
+    }
+    return null;
 }
->>>>>>> e625b55 (Обновления UI и логики GTFS)
+
+function findNearestStop(lat, lon) {
+    if (!allLocalStops?.length) return null;
+    let nearest = null;
+    let minDist = Infinity;
+    const point = L.latLng(lat, lon);
+    allLocalStops.forEach(stop => {
+        const dist = point.distanceTo([stop.stop_lat, stop.stop_lon]);
+        if (dist < minDist) { minDist = dist; nearest = stop; }
+    });
+    return nearest;
+}

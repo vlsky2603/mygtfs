@@ -26,6 +26,8 @@ let userLocationMarker = null;
 let filters = { direction: null, street: null, route: null };
 let darkMode = false;
 let currentRoutePolyline = null;
+let routePlannerStartMarker = null;
+let routePlannerEndMarker = null;
 let debounceTimeout;
 let currentStopForSchedulePanel = null; 
 let liveViewOriginStopMarker = null; 
@@ -131,7 +133,7 @@ function initUI() {
 
     document.getElementById('route-planner-toggle')?.addEventListener('click', () => togglePanel('route-planner-panel'));
     document.getElementById('close-route-planner')?.addEventListener('click', () => closeRoutePlannerPanel());
-    document.getElementById('build-route-button')?.addEventListener('click', buildRouteBetweenStops);
+    document.getElementById('build-route-button')?.addEventListener('click', buildRouteFromAddresses);
     
     document.getElementById('direction-filter')?.addEventListener('change', e => { filters.direction = e.target.value || null; if (filters.route && !isLiveBusViewActive) showRouteAndBuses(filters.route); else if (!isLiveBusViewActive) refreshMarkers(map.getCenter()); });
     document.getElementById('street-search')?.addEventListener('input', updateStreetSearch);
@@ -151,10 +153,7 @@ function initUI() {
     enableSwipeToClose('filter-panel', () => closeFilterPanel());
     enableSwipeToClose('favorites-panel', () => closeFavoritesPanel());
     enableSwipeToClose('regular-notifications-panel', () => closeRegularNotificationsPanel());
-<<<<<<< HEAD
-=======
     enableSwipeToClose('route-planner-panel', () => closeRoutePlannerPanel());
->>>>>>> e625b55 (Обновления UI и логики GTFS)
 }
 
 
@@ -275,6 +274,39 @@ function handleResetRoute() {
     updateResetRouteButtonVisibility();
     map.closePopup();
 }
+async function buildRouteFromAddresses() {
+    const startAddr = document.getElementById('route-start-address')?.value.trim();
+    const endAddr = document.getElementById('route-end-address')?.value.trim();
+    const resultEl = document.getElementById('route-plan-result');
+    if (!startAddr || !endAddr || !resultEl) return;
+    resultEl.textContent = 'Searching...';
+
+    const startCoord = await geocodeAddress(startAddr);
+    const endCoord = await geocodeAddress(endAddr);
+    if (!startCoord || !endCoord) { resultEl.textContent = 'Address not found.'; return; }
+
+    const startStop = findNearestStop(startCoord.lat, startCoord.lon);
+    const endStop = findNearestStop(endCoord.lat, endCoord.lon);
+    if (!startStop || !endStop) { resultEl.textContent = 'No nearby stops.'; return; }
+
+    document.getElementById('route-plan-start').value = startStop.stop_id;
+    document.getElementById('route-plan-end').value = endStop.stop_id;
+
+    if (routePlannerStartMarker) map.removeLayer(routePlannerStartMarker);
+    if (routePlannerEndMarker) map.removeLayer(routePlannerEndMarker);
+    routePlannerStartMarker = createStopMarker(startStop);
+    routePlannerEndMarker = createStopMarker(endStop);
+    const startDot = routePlannerStartMarker.getElement()?.querySelector('.stop-marker-dot');
+    if (startDot) startDot.classList.add('route-planner-start');
+    const endDot = routePlannerEndMarker.getElement()?.querySelector('.stop-marker-dot');
+    if (endDot) endDot.classList.add('route-planner-end');
+    map.addLayer(routePlannerStartMarker);
+    map.addLayer(routePlannerEndMarker);
+
+    buildRouteBetweenStops();
+    resultEl.textContent = `From ${startStop.stop_name} to ${endStop.stop_name}`;
+}
+
 
 function buildRouteBetweenStops() {
     const startId = document.getElementById('route-plan-start')?.value;
@@ -404,12 +436,9 @@ function updateLiveActivity(scheduleData) {
         container.innerHTML = `
             <div class="live-activity-content">
                 <span class="live-route-number">${nextBus.routeNumber}</span>
-                <div class="live-route-details">
-                    <span class="live-route-headsign">${nextBus.headsign}</span>
-                    <span class="live-route-status">Arriving in...</span>
-                </div>
+                <span class="live-route-headsign">${nextBus.headsign}</span>
+                <span class="live-arrival-time">${timeText}</span>
             </div>
-            <span class="live-arrival-time">${timeText}</span>
         `;
     } else {
         container.innerHTML = '';
@@ -551,6 +580,7 @@ async function showSchedulePanel(stop) {
         schedulePanelTitle.title = `${stop.stop_name || `Stop #${stop.stop_id}`} (ID: ${stop.stop_id})`;
     }
     panel.classList.add('active');
+    if (typeof updateBodyPanelOpenClass === 'function') updateBodyPanelOpenClass();
     closeFilterPanel(false); closeFavoritesPanel(false); closeRegularNotificationsPanel(false);
 
     let headerActionsWrapper = panelHeader.querySelector('.header-actions-wrapper');
