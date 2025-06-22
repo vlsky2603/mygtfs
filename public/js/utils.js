@@ -204,3 +204,11 @@ function findNearestStop(lat, lon) {
     });
     return nearest;
 }
+
+function findNearestStops(lat, lon, count = 1) {
+    if (!allLocalStops?.length) return [];
+    const point = L.latLng(lat, lon);
+    const arr = allLocalStops.map(stop => ({ stop, dist: point.distanceTo([stop.stop_lat, stop.stop_lon]) }));
+    arr.sort((a, b) => a.dist - b.dist);
+    return arr.slice(0, count).map(a => a.stop);
+}

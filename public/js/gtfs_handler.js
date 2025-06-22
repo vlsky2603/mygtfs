@@ -99,6 +99,22 @@ async function loadAndProcessGTFS() {
         });
         for (const tripId in gtfsData.tripToStops) gtfsData.tripToStops[tripId].sort((a, b) => a.stop_sequence - b.stop_sequence);
 
+        gtfsData.stopToTrips = {};
+        for (const tripId in gtfsData.tripToStops) {
+            const stops = gtfsData.tripToStops[tripId];
+            stops.forEach((st, idx) => {
+                if (!gtfsData.stopToTrips[st.stop_id]) gtfsData.stopToTrips[st.stop_id] = [];
+                gtfsData.stopToTrips[st.stop_id].push({ tripId, index: idx });
+            });
+        }
+        for (const stopId in gtfsData.stopToTrips) {
+            gtfsData.stopToTrips[stopId].sort((a, b) => {
+                const depA = gtfsTimeToSeconds(gtfsData.tripToStops[a.tripId][a.index].departure_time) || 0;
+                const depB = gtfsTimeToSeconds(gtfsData.tripToStops[b.tripId][b.index].departure_time) || 0;
+                return depA - depB;
+            });
+        }
+
         populateRouteFilter(); 
         loadFavorites();
         loadRegularNotificationRules(); 

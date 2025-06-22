@@ -428,4 +428,16 @@ body.modal-open #header-controls #reset-route-button:hover { opacity: 1; }
     background: var(--panel-border);
 }
 
+.route-plan-details {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.route-plan-step {
+    font-size: 0.85rem;
+    line-height: 1.3;
+}
+
 

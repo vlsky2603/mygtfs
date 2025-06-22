@@ -69,7 +69,8 @@ const DEFAULT_NOTIFICATION_MINUTES_BEFORE = 2;
 const RULE_MONITOR_INTERVAL = 1 * 60 * 1000; 
 const FETCH_PREVIOUS_STOP_FOR_CLOSEST_BUS = true; 
 const MAX_UNDETERMINED_FUTURE_ARRIVAL_MINUTES = 25; 
-const NUMBER_OF_BUSES_TO_SHOW = 2; 
+const NUMBER_OF_BUSES_TO_SHOW = 2;
+const WALK_SPEED_MPS = 1.4;
 
 // --- Инициализация ---
 
@@ -285,52 +286,34 @@ async function buildRouteFromAddresses() {
     const endCoord = await geocodeAddress(endAddr);
     if (!startCoord || !endCoord) { resultEl.textContent = 'Address not found.'; return; }
 
-    const startStop = findNearestStop(startCoord.lat, startCoord.lon);
-    const endStop = findNearestStop(endCoord.lat, endCoord.lon);
-    if (!startStop || !endStop) { resultEl.textContent = 'No nearby stops.'; return; }
-
-    document.getElementById('route-plan-start').value = startStop.stop_id;
-    document.getElementById('route-plan-end').value = endStop.stop_id;
-
-    if (routePlannerStartMarker) map.removeLayer(routePlannerStartMarker);
-    if (routePlannerEndMarker) map.removeLayer(routePlannerEndMarker);
-    routePlannerStartMarker = createStopMarker(startStop);
-    routePlannerEndMarker = createStopMarker(endStop);
-    const startDot = routePlannerStartMarker.getElement()?.querySelector('.stop-marker-dot');
-    if (startDot) startDot.classList.add('route-planner-start');
-    const endDot = routePlannerEndMarker.getElement()?.querySelector('.stop-marker-dot');
-    if (endDot) endDot.classList.add('route-planner-end');
-    map.addLayer(routePlannerStartMarker);
-    map.addLayer(routePlannerEndMarker);
-
-    buildRouteBetweenStops();
-    resultEl.textContent = `From ${startStop.stop_name} to ${endStop.stop_name}`;
+    buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr);
 }
 
 
-function buildRouteBetweenStops() {
-    const startId = document.getElementById('route-plan-start')?.value;
-    const endId = document.getElementById('route-plan-end')?.value;
+function buildRouteBetweenAddresses(startCoord, endCoord, startAddr, endAddr) {
     const resultEl = document.getElementById('route-plan-result');
     const optionsEl = document.getElementById('route-plan-options');
-    if (!startId || !endId || !resultEl || !optionsEl) return;
+    const detailsEl = document.getElementById('route-plan-details');
+    if (!resultEl || !optionsEl || !detailsEl) return;
 
     if (currentRoutePolyline) { map.removeLayer(currentRoutePolyline); currentRoutePolyline = null; }
     optionsEl.innerHTML = '';
+    detailsEl.innerHTML = '';
 
-    const routeOptions = findRouteOptions(startId, endId);
+    const routeOptions = getRouteOptions(startCoord, endCoord);
     if (routeOptions.length === 0) {
         resultEl.textContent = 'No route found.';
         return;
     }
 
     drawRouteOption(routeOptions[0]);
+    displayRouteDetails(routeOptions[0], startAddr, endAddr);
     const firstLeg = routeOptions[0].legs[0];
-    const lastLeg = routeOptions[0].legs[routeOptions[0].legs.length - 1];
+    const lastLeg = routeOptions[0].legs[routeOptions[0].legs.length-1];
     const serviceDate = determineSimulationTimeUTC();
     const dep = getDatetimeForGtfsTime(firstLeg.startTime, serviceDate);
     const arr = getDatetimeForGtfsTime(lastLeg.endTime, serviceDate);
-    resultEl.textContent = `Departs ${dep.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}, arrives ${arr.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+    resultEl.textContent = `${Math.round((arr - dep)/60000)} min, ${routeOptions[0].transfers} transfers`;
 
     routeOptions.forEach((opt, idx) => {
         const legFirst = opt.legs[0];
@@ -339,73 +322,15 @@ function buildRouteBetweenStops() {
         const a = getDatetimeForGtfsTime(legLast.endTime, serviceDate);
         const item = document.createElement('div');
         item.className = 'route-option-item';
-        item.textContent = `${idx===0?'Fastest':'Option '+(idx+1)}: ${opt.transfers} transfers, ${(a - d)/60000|0} min`;
+        const label = idx===0 ? 'Fastest' : idx===1 ? 'Fewest transfers' : 'Least walking';
+        item.textContent = `${label}: ${(a - d)/60000|0} min, ${opt.transfers} transfers`;
         item.addEventListener('click', () => {
             drawRouteOption(opt);
-            resultEl.textContent = `Departs ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}, arrives ${a.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+            displayRouteDetails(opt, startAddr, endAddr);
+            resultEl.textContent = `${Math.round((a - d)/60000)} min, ${opt.transfers} transfers`;
         });
         optionsEl.appendChild(item);
     });
-}
-
-function findRouteOptions(startStopId, endStopId) {
-    const serviceDate = determineSimulationTimeUTC();
-    const nowSeconds = serviceDate.getUTCHours()*3600 + serviceDate.getUTCMinutes()*60 + serviceDate.getUTCSeconds();
-    const options = [];
-
-    for (const tripId in gtfsData.tripToStops) {
-        const stops = gtfsData.tripToStops[tripId];
-        const startIdx = stops.findIndex(s => String(s.stop_id) === String(startStopId));
-        const endIdx = stops.findIndex(s => String(s.stop_id) === String(endStopId));
-        if (startIdx >= 0 && endIdx > startIdx) {
-            const depSec = gtfsTimeToSeconds(stops[startIdx].departure_time);
-            const arrSec = gtfsTimeToSeconds(stops[endIdx].arrival_time);
-            if (depSec !== null && arrSec !== null && depSec >= nowSeconds) {
-                options.push({
-                    transfers: 0,
-                    legs: [{tripId, start: startStopId, end: endStopId, startTime: depSec, endTime: arrSec}]
-                });
-            }
-        }
-    }
-
-    // one transfer
-    for (const tripIdA in gtfsData.tripToStops) {
-        const stopsA = gtfsData.tripToStops[tripIdA];
-        const startIdx = stopsA.findIndex(s => String(s.stop_id) === String(startStopId));
-        if (startIdx < 0) continue;
-        for (let i = startIdx + 1; i < Math.min(startIdx + 6, stopsA.length); i++) {
-            const transferStop = stopsA[i];
-            const depSecA = gtfsTimeToSeconds(stopsA[startIdx].departure_time);
-            const arrSecTransfer = gtfsTimeToSeconds(transferStop.arrival_time);
-            if (depSecA === null || arrSecTransfer === null || depSecA > nowSeconds || arrSecTransfer <= depSecA) continue;
-            for (const tripIdB in gtfsData.tripToStops) {
-                const stopsB = gtfsData.tripToStops[tripIdB];
-                const transferIdx = stopsB.findIndex(s => String(s.stop_id) === String(transferStop.stop_id));
-                const endIdxB = stopsB.findIndex(s => String(s.stop_id) === String(endStopId));
-                if (transferIdx >= 0 && endIdxB > transferIdx) {
-                    const depSecB = gtfsTimeToSeconds(stopsB[transferIdx].departure_time);
-                    const arrSecB = gtfsTimeToSeconds(stopsB[endIdxB].arrival_time);
-                    if (depSecB !== null && arrSecB !== null && depSecB >= arrSecTransfer) {
-                        options.push({
-                            transfers: 1,
-                            legs: [
-                                {tripId: tripIdA, start: startStopId, end: transferStop.stop_id, startTime: depSecA, endTime: arrSecTransfer},
-                                {tripId: tripIdB, start: transferStop.stop_id, end: endStopId, startTime: depSecB, endTime: arrSecB}
-                            ]
-                        });
-                    }
-                }
-            }
-        }
-    }
-
-    return options.sort((a,b) => {
-        const tA = a.legs[a.legs.length-1].endTime - a.legs[0].startTime;
-        const tB = b.legs[b.legs.length-1].endTime - b.legs[0].startTime;
-        if (tA !== tB) return tA - tB;
-        return a.transfers - b.transfers;
-    }).slice(0,3);
 }
 
 function drawRouteOption(option) {
@@ -413,6 +338,23 @@ function drawRouteOption(option) {
         map.removeLayer(currentRoutePolyline);
         currentRoutePolyline = null;
     }
+    if (routePlannerStartMarker) map.removeLayer(routePlannerStartMarker);
+    if (routePlannerEndMarker) map.removeLayer(routePlannerEndMarker);
+    const startStop = gtfsData.stopDetails[option.startStop];
+    const endStop = gtfsData.stopDetails[option.endStop];
+    if (startStop) {
+        routePlannerStartMarker = createStopMarker(startStop);
+        const dot = routePlannerStartMarker.getElement()?.querySelector('.stop-marker-dot');
+        if (dot) dot.classList.add('route-planner-start');
+        map.addLayer(routePlannerStartMarker);
+    }
+    if (endStop) {
+        routePlannerEndMarker = createStopMarker(endStop);
+        const dot2 = routePlannerEndMarker.getElement()?.querySelector('.stop-marker-dot');
+        if (dot2) dot2.classList.add('route-planner-end');
+        map.addLayer(routePlannerEndMarker);
+    }
+
     const polylines = [];
     option.legs.forEach(leg => {
         const trip = gtfsData.trips.find(t => t.trip_id === leg.tripId);
@@ -420,13 +362,121 @@ function drawRouteOption(option) {
         const shapeId = trip.shape_id;
         const shape = gtfsData.shapes[shapeId];
         if (!shape) return;
-        const poly = shape.map(p => [p.lat, p.lon]);
-        polylines.push(poly);
+        polylines.push(shape.map(p => [p.lat, p.lon]));
     });
     if (polylines.length > 0) {
         currentRoutePolyline = L.polyline(polylines, { color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(), weight: 5 }).addTo(map);
         map.fitBounds(currentRoutePolyline.getBounds(), { padding: [50,50] });
     }
+}
+
+function displayRouteDetails(option, startAddr, endAddr) {
+    const detailsEl = document.getElementById('route-plan-details');
+    if (!detailsEl) return;
+    detailsEl.innerHTML = '';
+    const serviceDate = determineSimulationTimeUTC();
+
+    const startStop = gtfsData.stopDetails[option.startStop];
+    const endStop = gtfsData.stopDetails[option.endStop];
+
+    if (startStop) {
+        const walkStep = document.createElement('div');
+        walkStep.className = 'route-plan-step';
+        walkStep.textContent = `Walk to ${startStop.stop_name} stop`;
+        detailsEl.appendChild(walkStep);
+    }
+
+    option.legs.forEach((leg, idx) => {
+        const trip = gtfsData.trips.find(t => t.trip_id === leg.tripId);
+        const route = trip ? gtfsData.routes.find(r => r.route_id === trip.route_id) : null;
+        const routeName = route ? route.route_short_name : leg.tripId;
+        const startTime = getDatetimeForGtfsTime(leg.startTime, serviceDate).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        const endTime = getDatetimeForGtfsTime(leg.endTime, serviceDate).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        const text = `Take ${routeName} from ${gtfsData.stopDetails[leg.start].stop_name} to ${gtfsData.stopDetails[leg.end].stop_name} (${startTime} - ${endTime})`;
+        const div = document.createElement('div');
+        div.className = 'route-plan-step';
+        div.textContent = text;
+        detailsEl.appendChild(div);
+        if (idx < option.legs.length-1) {
+            const tr = document.createElement('div');
+            tr.className = 'route-plan-step';
+            tr.textContent = 'Transfer';
+            detailsEl.appendChild(tr);
+        }
+    });
+
+    if (endStop) {
+        const endWalk = document.createElement('div');
+        endWalk.className = 'route-plan-step';
+        endWalk.textContent = `Walk to destination`;
+        detailsEl.appendChild(endWalk);
+    }
+}
+
+function planRoutes(startStopId, endStopId, earliestStartSec, maxTransfers = 3) {
+    const results = [];
+    const queue = [{ stopId: startStopId, time: earliestStartSec, path: [] }];
+    const visited = {};
+
+    while (queue.length && results.length < 20) {
+        queue.sort((a,b) => a.time - b.time);
+        const state = queue.shift();
+        const transfers = state.path.length > 0 ? state.path.length - 1 : 0;
+        const key = state.stopId + '-' + transfers;
+        if (visited[key] && visited[key] <= state.time) continue;
+        visited[key] = state.time;
+
+        if (state.stopId === endStopId) {
+            results.push({ legs: state.path, transfers, arrival: state.time, startStop: startStopId, endStop: endStopId });
+            continue;
+        }
+        if (transfers > maxTransfers) continue;
+        const occurrences = gtfsData.stopToTrips[state.stopId] || [];
+        occurrences.forEach(occ => {
+            const tripStops = gtfsData.tripToStops[occ.tripId];
+            const depInfo = tripStops[occ.index];
+            const depSec = gtfsTimeToSeconds(depInfo.departure_time);
+            if (depSec === null || depSec < state.time) return;
+            for (let j = occ.index + 1; j < Math.min(occ.index + 20, tripStops.length); j++) {
+                const arrInfo = tripStops[j];
+                const arrSec = gtfsTimeToSeconds(arrInfo.arrival_time);
+                if (arrSec === null) continue;
+                const leg = { tripId: occ.tripId, start: depInfo.stop_id, end: arrInfo.stop_id, startTime: depSec, endTime: arrSec };
+                queue.push({ stopId: arrInfo.stop_id, time: arrSec, path: state.path.concat([leg]) });
+            }
+        });
+    }
+
+    results.sort((a,b) => a.arrival - b.arrival);
+    return results;
+}
+
+function getRouteOptions(startCoord, endCoord) {
+    const startCandidates = findNearestStops(startCoord.lat, startCoord.lon, 3);
+    const endCandidates = findNearestStops(endCoord.lat, endCoord.lon, 3);
+    const serviceDate = determineSimulationTimeUTC();
+    const nowSeconds = serviceDate.getUTCHours()*3600 + serviceDate.getUTCMinutes()*60 + serviceDate.getUTCSeconds();
+    const options = [];
+    startCandidates.forEach(s => {
+        const startWalk = getDistance(startCoord.lat, startCoord.lon, s.stop_lat, s.stop_lon);
+        const startWalkSec = startWalk / WALK_SPEED_MPS;
+        endCandidates.forEach(e => {
+            const endWalk = getDistance(endCoord.lat, endCoord.lon, e.stop_lat, e.stop_lon);
+            const endWalkSec = endWalk / WALK_SPEED_MPS;
+            const routes = planRoutes(s.stop_id, e.stop_id, nowSeconds + startWalkSec, 2);
+            routes.forEach(r => {
+                const totalArr = r.arrival + endWalkSec;
+                options.push({ ...r, finalArrival: totalArr, startStop: s.stop_id, endStop: e.stop_id, startWalk, endWalk, totalWalk: startWalk + endWalk });
+            });
+        });
+    });
+    if (options.length === 0) return [];
+    const fastest = options.reduce((a,b) => a.finalArrival < b.finalArrival ? a : b);
+    const fewest = options.reduce((a,b) => (a.transfers < b.transfers || (a.transfers === b.transfers && a.finalArrival < b.finalArrival)) ? a : b);
+    const walking = options.reduce((a,b) => (a.totalWalk < b.totalWalk || (a.totalWalk === b.totalWalk && a.finalArrival < b.finalArrival)) ? a : b);
+    const unique = [];
+    [fastest, fewest, walking].forEach(o => { if (o && !unique.includes(o)) unique.push(o); });
+    return unique.slice(0,3);
 }
 
 function resetFilters() {
