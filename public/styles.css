@@ -1,0 +1,227 @@
+/* =================================================================== */
+/*    "iOS 26" FUTURISTIC UI (v12.1 - DEBUGGING STYLES)                */
+/* =================================================================== */
+
+/* 1. ШРИФТЫ И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --primary-hue: 217; --primary-saturation: 91%; --primary-lightness: 60%;
+    --primary-color: hsl(var(--primary-hue), var(--primary-saturation), var(--primary-lightness));
+    --primary-glow: hsla(var(--primary-hue), var(--primary-saturation), var(--primary-lightness), 0.5);
+    --text-color: #1d2129; --text-secondary-color: #606770; --bg-color: #f0f2f5;
+    --border-color: rgba(0, 0, 0, 0.08);
+    --success-color: #00a400; --success-glow: hsla(120, 100%, 32%, 0.4);
+    --warning-color: #ffc700; --error-color: #fa383e; --favorite-color: #ffab00;
+    --panel-bg: rgba(247, 248, 250, 0.8);
+    --panel-border: rgba(255, 255, 255, 0.9);
+    --panel-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.1);
+    --transition-focus: all 0.6s cubic-bezier(0.2, 1, 0.3, 1);
+    --transition-fast: all 0.2s ease-out;
+}
+.dark-mode {
+    --primary-hue: 217; --primary-saturation: 80%; --primary-lightness: 65%;
+    --text-color: #e4e6eb; --text-secondary-color: #b0b3b8; --bg-color: #0a0a0a;
+    --border-color: rgba(255, 255, 255, 0.15);
+    --success-color: #24d478; --success-glow: hsla(145, 63%, 49%, 0.4);
+    --warning-color: #ffca28; --error-color: #ff5252; --favorite-color: #ffc400;
+    --panel-bg: rgba(26, 27, 28, 0.75); --panel-border: rgba(255, 255, 255, 0.2);
+    --panel-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.3);
+}
+
+/* 2. АНИМАЦИЯ ФОНА */
+@keyframes aurora-animation { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+body::before { content: ''; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; background: linear-gradient(125deg, hsla(var(--primary-hue), 90%, 60%, 0.15), hsla(180, 90%, 60%, 0.15)); background-size: 400% 400%; animation: aurora-animation 25s ease infinite; }
+.dark-mode body::before { background: linear-gradient(125deg, hsla(var(--primary-hue), 90%, 50%, 0.2), hsla(260, 90%, 50%, 0.2)); background-size: 400% 400%; animation: aurora-animation 20s ease infinite; }
+
+/* 3. ОСНОВНЫЕ СТИЛИ И ЭФФЕКТ ФОКУСА */
+body { margin: 0; padding: 0; font-family: var(--font-family-base); background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s ease, color 0.3s ease; font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; overflow: hidden; }
+#map { height: 100vh; width: 100%; z-index: 1; background-color: var(--bg-color); transition: var(--transition-focus); }
+.dark-mode .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(90%) contrast(85%); }
+
+body:has(#schedule-panel.active) #map {
+    transform: scale(0.95);
+    filter: blur(8px) brightness(0.9);
+    border-radius: 30px;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0,0,0,0.2);
+}
+.dark-mode body:has(#schedule-panel.active) #map {
+    filter: blur(8px) brightness(0.6) invert(1) hue-rotate(180deg);
+}
+
+/* 4. КИНЕТИЧЕСКИЙ ОСТРОВ И LIVE ACTIVITY */
+#header-controls {
+    position: fixed; bottom: env(safe-area-inset-bottom, 10px);
+    left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; z-index: 1002; padding: 8px;
+    background: var(--panel-bg); border: 1px solid var(--panel-border);
+    box-shadow: var(--panel-shadow);
+    backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+    height: 64px;
+    width: auto;
+    border-radius: 100px;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+body:has(#schedule-panel.active) #header-controls {
+    width: 95%;
+    max-width: 400px;
+    border-radius: 24px;
+    gap: 0;
+}
+.control-button {
+    position: relative; background: transparent; color: var(--text-secondary-color);
+    width: 48px; height: 48px; border-radius: 50%; border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.2rem;
+    transition: all 0.4s ease;
+    flex-shrink: 0;
+}
+.control-button:active { transform: scale(0.9); }
+body:has(#schedule-panel.active) .control-button:not(#reset-route-button) {
+    opacity: 0; width: 0; margin: 0; padding: 0; pointer-events: none;
+}
+#reset-route-button { display: none; }
+body:has(#schedule-panel.active) #reset-route-button {
+    position: absolute; top: 50%; right: 8px; transform: translateY(-50%); opacity: 0.7;
+}
+body:has(#schedule-panel.active) #reset-route-button:hover { opacity: 1; }
+#live-activity-container {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 0; padding: 0; opacity: 0; transform: scale(0.9);
+    transition: all 0.4s ease 0.1s; pointer-events: none; overflow: hidden; white-space: nowrap;
+}
+body:has(#schedule-panel.active) #live-activity-container {
+    width: 100%; padding: 0 16px; opacity: 1; transform: scale(1); pointer-events: auto;
+}
+.live-activity-content { display: flex; align-items: center; gap: 12px; }
+.live-route-number { font-size: 1.2em; font-weight: 700; background: var(--primary-color); color: white; border-radius: 8px; padding: 6px 10px; }
+.live-route-details { display: flex; flex-direction: column; text-align: left; }
+.live-route-headsign { font-weight: 600; color: var(--text-color); }
+.live-route-status { font-size: 0.9em; color: var(--text-secondary-color); }
+.live-arrival-time { font-size: 1.2em; font-weight: 700; color: var(--primary-color); }
+
+/* 5. ПАНЕЛИ */
+#filter-panel, #schedule-panel, #favorites-panel, #regular-notifications-panel {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    margin: 0 auto; width: 95%; max-width: 500px;
+    background: var(--panel-bg); backdrop-filter: blur(25px) saturate(180%); -webkit-backdrop-filter: blur(25px) saturate(180%);
+    z-index: 1001; box-shadow: var(--panel-shadow); border: 1px solid var(--panel-border);
+    max-height: 80vh; border-radius: 24px 24px 0 0;
+    display: flex; flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+}
+#schedule-panel.active {
+    transform: translateY(0);
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 10px) + 10px) !important;
+}
+#filter-panel.active, #favorites-panel.active, #regular-notifications-panel.active {
+    transform: translateY(0);
+    padding-bottom: env(safe-area-inset-bottom, 10px);
+}
+.panel-header { padding: 16px 20px 10px; text-align: center; border-bottom: 1px solid var(--border-color); flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+.panel-header h3 { margin: 0; font-size: 1.1em; font-weight: 600; text-align: left; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; }
+.panel-content { flex: 1; overflow-y: auto; padding: 10px 20px; }
+.header-actions-wrapper { display: flex; align-items: center; gap: 8px; }
+.header-actions-wrapper .control-button { width: 42px; height: 42px; }
+
+/* 6. ИКОНКИ ОСТАНОВОК */
+.stop-marker-wrapper { cursor: pointer; }
+.stop-marker-dot { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid var(--primary-color); background-color: var(--bg-color); box-shadow: 0 0 8px hsla(var(--primary-hue), 90%, 60%, 0.3); transition: var(--transition-smooth); }
+.stop-marker-dot:active { transform: scale(1.2); }
+.stop-marker-dot.favorite-stop-on-map { border-color: var(--favorite-color); box-shadow: 0 0 10px var(--favorite-color); }
+.stop-marker-dot.live-origin-stop-marker { border-color: var(--success-color); background-color: var(--success-color); animation: pulse-live 2s infinite; }
+
+/* 7. ИКОНКА МЕСТОПОЛОЖЕНИЯ */
+.user-location-marker .user-dot { width: 20px; height: 20px; background-color: #007aff; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(0, 122, 255, 0.7); animation: pulse-user 2s infinite; }
+@keyframes pulse-user { 0% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.5); } 70% { box-shadow: 0 0 0 15px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes pulse-live { 0% { box-shadow: 0 0 0 0 var(--success-color); } 70% { box-shadow: 0 0 0 15px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* 8. ПАНЕЛЬ РАСПИСАНИЯ С АНИМАЦИЕЙ ПОЯВЛЕНИЯ */
+@keyframes slide-in-item { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+.route-item { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border-color); opacity: 0; animation: slide-in-item 0.5s cubic-bezier(0.2, 1, 0.3, 1) forwards; }
+.route-item:last-child { border-bottom: none; }
+.route-item:nth-child(1) { animation-delay: 0.1s; }
+.route-item:nth-child(2) { animation-delay: 0.15s; }
+.route-item:nth-child(3) { animation-delay: 0.2s; }
+.route-item:nth-child(4) { animation-delay: 0.25s; }
+
+.route-item-info { display: flex; flex-direction: column; align-items: center; gap: 12px; flex-shrink: 0; }
+.route-circle { width: 52px; height: 52px; border-radius: 16px; background: var(--primary-color); color: white; font-weight: 700; font-size: 1.6em; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition-fast); }
+.route-circle:active { transform: scale(0.95); filter: brightness(0.9); }
+
+/* ========================================================== */
+/*     ↓↓↓ ОТЛАДОЧНЫЕ СТИЛИ ДЛЯ КНОПОК (обновлено) ↓↓↓         */
+/* ========================================================== */
+.route-item-actions {
+    display: flex !important; /* Гарантируем отображение */
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid blue; /* Рамка для отладки */
+    padding: 5px;
+    min-height: 60px; /* Минимальная высота для видимости */
+    justify-content: center;
+}
+.route-item-actions .control-button {
+    display: flex !important; /* Форсируем отображение */
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: auto !important; /* Убираем ограничения ширины */
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(128, 128, 128, 0.1);
+
+    /* ЯРКИЕ СТИЛИ ДЛЯ ОТЛАДКИ */
+    border: 3px solid red !important;
+    color: red !important;
+    background-color: yellow !important;
+}
+.route-item-actions .control-button:active { transform: scale(0.95); }
+
+.route-item-details { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0; }
+.route-name-schedule { font-size: 1.1em; font-weight: 600; line-height: 1.3; }
+.route-schedule-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 8px; }
+
+.arrival-time-item { background: rgba(128, 128, 128, 0.1); border: 1px solid transparent; border-radius: 10px; color: var(--text-secondary-color); font-weight: 500; padding: 8px 4px; text-align: center; font-size: 0.9em; transition: var(--transition-smooth); }
+.arrival-time-item.live { color: var(--primary-color); background: hsla(var(--primary-hue), 90%, 60%, 0.15); font-weight: 600; }
+.arrival-time-item.now { background: var(--success-color); color: white; font-weight: 700; }
+.arrival-time-item.critical-soon { color: var(--warning-color); font-weight: 600; }
+
+/* 9. СИМУЛЯЦИЯ АВТОБУСА */
+@keyframes marker-fade-in { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+@keyframes pulse-bus { 0% { box-shadow: 0 0 0 0 var(--primary-glow); } 70% { box-shadow: 0 0 0 10px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.simulated-bus-marker { display: flex; flex-direction: column; align-items: center; gap: 4px; animation: marker-fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.bus-icon-wrapper { width: 36px; height: 36px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 2px solid var(--bg-color); animation: pulse-bus 2.5s infinite; position: relative; }
+.bus-icon-wrapper .fa-bus { font-size: 0.8em; position: absolute; top: 5px; }
+.bus-icon-wrapper .bus-route-number { position: absolute; bottom: 5px; font-size: 0.8em; font-weight: 600; }
+.bus-arrival-time { background: var(--panel-bg); color: var(--text-color); padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border: 1px solid var(--panel-border); }
+.simulated-bus-marker.bus-now .bus-icon-wrapper { background: var(--success-color); animation-name: none; }
+.simulated-bus-marker.bus-soon .bus-icon-wrapper { background: var(--warning-color); animation-duration: 1.5s; }
+
+/* 10. ОБЩИЕ СТИЛИ И АДАПТИВНОСТЬ */
+.leaflet-control-zoom { display: none !important; }
+.favorite-stop-btn.is-favorite { color: var(--favorite-color) !important; }
+.center-marker { display: none; }
+.panel-content::-webkit-scrollbar { width: 6px; }
+.panel-content::-webkit-scrollbar-track { background: transparent; }
+.panel-content::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.3); border-radius: 3px; }
+.dark-mode .panel-content::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); }
+.animated-live-path { stroke-dasharray: 4, 8; animation: path-dash 1s linear infinite; }
+@keyframes path-dash { to { stroke-dashoffset: -12; } }
+
+/* Общие стили для кнопок в панелях */
+.control-button.schedule-btn {
+    opacity: 1 !important; /* Убеждаемся, что кнопки видны */
+    pointer-events: auto !important; /* Включаем интерактивность */
+    transition: all 0.3s ease;
+}
+.control-button.schedule-btn:hover {
+    background-color: rgba(255, 215, 0, 0.8) !important; /* Изменяем фон при наведении */
+}
