@@ -176,23 +176,27 @@ function createRoutePlannerMarker(lat, lon, type) {
 }
 
 export function clearPreviousRouteDrawing() {
+    const currentRoutePolyline = window.currentRoutePolyline;
     if (currentRoutePolyline) {
         map.removeLayer(currentRoutePolyline);
-        currentRoutePolyline = null;
+        window.currentRoutePolyline = null;
     }
+    const activeSimulatedBuses = window.activeSimulatedBuses || {};
     Object.values(activeSimulatedBuses).forEach(busInfo => {
         if (busInfo.animatedPath) {
             map.removeLayer(busInfo.animatedPath);
             busInfo.animatedPath = null;
         }
     });
-    liveViewSpecificShapeId = null;
+    // liveViewSpecificShapeId = null; // Закомментировано - переменная не определена
 }
 
 export async function showRouteAndBuses(routeId) {
     clearPreviousRouteDrawing();
+    const isLiveBusViewActive = window.isLiveBusViewActive;
     if (isLiveBusViewActive) { 
-        deactivateLiveBusView(false); 
+        // deactivateLiveBusView(false); // Закомментировано - функция не определена
+        window.isLiveBusViewActive = false;
     }
     if (radiusCircle) radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
     if (centerMarker) centerMarker.setOpacity(0);
@@ -232,8 +236,9 @@ export async function showRouteAndBuses(routeId) {
 
     if (multiPolylinePoints.length > 0) {
         // Leaflet автоматически создает MultiPolyline, если передать массив массивов координат
-        currentRoutePolyline = L.polyline(multiPolylinePoints, { color: routeColor, weight: 4, opacity: 0.75 }).addTo(map);
-        elementsToFit.push(currentRoutePolyline);
+        const polyline = L.polyline(multiPolylinePoints, { color: routeColor, weight: 4, opacity: 0.75 }).addTo(map);
+        window.currentRoutePolyline = polyline;
+        elementsToFit.push(polyline);
     } else {
         console.warn(`No valid shapes found for route ${routeId}`);
     }

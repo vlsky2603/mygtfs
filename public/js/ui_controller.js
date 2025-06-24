@@ -10,7 +10,6 @@ import { renderRegularNotificationsPanel, closeRuleEditor } from './notification
 export let filters = { route: null, direction: null, street: null };
 export let isLiveBusViewActive = false;
 export let currentRoutePolyline = null;
-export let activeSimulatedBuses = {};
 
 // Переменные состояния
 let darkMode = localStorage.getItem('darkMode') === 'true';
@@ -391,6 +390,7 @@ export function handleResetRoute() {
     resetFilters();
     
     // Очистить симуляцию автобусов
+    const activeSimulatedBuses = window.activeSimulatedBuses;
     if (activeSimulatedBuses) {
         Object.keys(activeSimulatedBuses).forEach(busId => {
             delete activeSimulatedBuses[busId];
@@ -615,7 +615,7 @@ function renderSchedule(container, now) {
                     <div class="route-destination-name">${route.name}</div>
                 </div>
                 <div class="live-tracking-container">
-                    <button class="live-track-btn" onclick="startLiveTracking('${route.number}', '${nextArrival.variant.key}', '${nextArrival.times.departure.estimated || nextArrival.times.departure.scheduled}')" title="Live Bus Tracking">
+                    <button class="live-track-btn" onclick="startLiveTracking('${route.number}', '${nextArrival.variant.key}', '${nextArrival.times.departure.estimated || nextArrival.times.departure.scheduled}', ${JSON.stringify(route).replace(/"/g, '&quot;')})" title="Live Bus Tracking">
                         <i class="fas fa-map-marker-alt"></i>
                         <span>Track</span>
                     </button>
@@ -666,9 +666,9 @@ function updateScheduleCountdown(container) {
 }
 
 // Функция для запуска live-отслеживания автобуса
-window.startLiveTracking = function(routeNumber, variantKey, departureTime) {
+window.startLiveTracking = function(routeNumber, variantKey, departureTime, routeData = null) {
     console.log('=== STARTING LIVE TRACKING ===');
-    console.log('Parameters:', { routeNumber, variantKey, departureTime });
+    console.log('Parameters:', { routeNumber, variantKey, departureTime, routeData });
     console.log('Current stop:', currentStopForSchedulePanel);
     console.log('Available schedules:', _currentPanelApiRouteSchedules);
     
@@ -677,26 +677,39 @@ window.startLiveTracking = function(routeNumber, variantKey, departureTime) {
         return;
     }
     
+    // Сохраняем текущую остановку и расписания
+    const stopForTracking = { ...currentStopForSchedulePanel };
+    const currentSchedules = [...(_currentPanelApiRouteSchedules || [])];
+    
     // Закрыть панель расписания
     closeSchedulePanel();
     
     // Найти соответствующий маршрут в schedules
-    const routeSchedule = _currentPanelApiRouteSchedules.find(rs => 
+    let routeSchedule = currentSchedules.find(rs => 
         String(rs.route.number) === String(routeNumber)
     );
     
+    if (!routeSchedule && routeData) {
+        // Создаем объект расписания из переданных данных
+        console.log('Creating route schedule from passed route data');
+        routeSchedule = {
+            route: routeData,
+            'scheduled-stops': [] // Пустой массив, но с правильными данными маршрута
+        };
+    }
+    
     if (!routeSchedule) {
         console.warn('Route schedule not found for live tracking. Available routes:', 
-            _currentPanelApiRouteSchedules.map(rs => rs.route.number));
+            currentSchedules.map(rs => rs.route.number));
         
         // Попробуем найти любой маршрут с подходящим номером
-        const fallbackSchedule = _currentPanelApiRouteSchedules.find(rs => 
+        const fallbackSchedule = currentSchedules.find(rs => 
             rs.route.number && rs.route.number.toString().includes(routeNumber.toString())
         );
         
         if (fallbackSchedule) {
             console.log('Using fallback route schedule:', fallbackSchedule.route.number);
-            startSimulation(fallbackSchedule);
+            startSimulation(fallbackSchedule, stopForTracking);
         } else {
             // Создаем временный объект расписания для демонстрации
             console.log('Creating demo route schedule for tracking');
@@ -704,23 +717,24 @@ window.startLiveTracking = function(routeNumber, variantKey, departureTime) {
                 route: { number: routeNumber, name: `Route ${routeNumber}` },
                 'scheduled-stops': []
             };
-            startSimulation(demoSchedule);
+            startSimulation(demoSchedule, stopForTracking);
         }
         return;
     }
     
     console.log('Found matching route schedule:', routeSchedule);
-    startSimulation(routeSchedule);
+    startSimulation(routeSchedule, stopForTracking);
     
-    function startSimulation(schedule) {
+    function startSimulation(schedule, stop) {
         console.log('Starting simulation with schedule:', schedule);
+        console.log('Using stop:', stop);
         // Импортировать и вызвать функцию симуляции
         import('./bus_simulator.js').then(module => {
             console.log('Bus simulator module loaded');
             const { simulateAndShowUpcomingBusesForRoute } = module;
             console.log('Calling simulateAndShowUpcomingBusesForRoute...');
             simulateAndShowUpcomingBusesForRoute(
-                currentStopForSchedulePanel, 
+                stop, 
                 schedule, 
                 new Date().toISOString(), 
                 true // isForLiveViewMode

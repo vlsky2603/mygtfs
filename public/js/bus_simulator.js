@@ -4,8 +4,17 @@
 
 import { determineSimulationTimeUTC } from './utils.js';
 import { gtfsData } from './gtfs_handler.js';
-import { activeSimulatedBuses, isLiveBusViewActive } from './ui_controller.js';
+import { isLiveBusViewActive } from './ui_controller.js';
 import { map, simulatedBusesLayerGroup } from './map_drawer.js';
+
+// Глобальная переменная для отслеживания активных автобусов
+let activeSimulatedBuses = {};
+
+// Экспорт переменной в window для глобального доступа
+window.activeSimulatedBuses = activeSimulatedBuses;
+
+// Экспорт переменной
+export { activeSimulatedBuses };
 
 // Переменные для анимации
 let smoothAnimationRequestId = null;
