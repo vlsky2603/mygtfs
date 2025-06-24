@@ -10,6 +10,56 @@ import { map, simulatedBusesLayerGroup } from './map_drawer.js';
 // Глобальная переменная для отслеживания активных автобусов
 let activeSimulatedBuses = {};
 
+// Переменные для live view (заглушки)
+let liveViewOriginStopMarker = null;
+let liveViewSpecificShapeId = null;
+
+// Функции-заглушки
+function updateResetRouteButtonVisibility() {
+    // Заглушка для функции обновления видимости кнопки сброса маршрута
+    const func = window.updateResetRouteButtonVisibility;
+    if (func) func();
+}
+
+function gtfsTimeToSeconds(timeStr) {
+    // Преобразует GTFS время (HH:MM:SS) в секунды
+    if (!timeStr) return null;
+    const parts = timeStr.split(':');
+    if (parts.length !== 3) return null;
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    const seconds = parseInt(parts[2], 10);
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
+function getDatetimeForGtfsTime(seconds, baseDate) {
+    // Создает Date объект из GTFS времени в секундах
+    if (seconds === null || !baseDate) return null;
+    const date = new Date(baseDate);
+    date.setHours(0, 0, 0, 0); // Сброс времени на начало дня
+    date.setSeconds(date.getSeconds() + seconds);
+    return date;
+}
+
+function formatArrivalTime(times, currentTime) {
+    // Форматирует время прибытия автобуса
+    const arrivalTimeStr = times.estimated || times.scheduled;
+    if (!arrivalTimeStr) return { text: '', css: '' };
+    
+    const arrivalTime = new Date(arrivalTimeStr);
+    const diffMinutes = Math.round((arrivalTime.getTime() - currentTime.getTime()) / (1000 * 60));
+    
+    if (diffMinutes <= 0) {
+        return { text: 'Now', css: 'bus-now' };
+    } else if (diffMinutes <= 2) {
+        return { text: `${diffMinutes} min`, css: 'bus-soon' };
+    } else if (diffMinutes <= 5) {
+        return { text: `${diffMinutes} min`, css: 'bus-critical-soon' };
+    } else {
+        return { text: `${diffMinutes} min`, css: '' };
+    }
+}
+
 // Экспорт переменной в window для глобального доступа
 window.activeSimulatedBuses = activeSimulatedBuses;
 
@@ -22,6 +72,8 @@ let smoothAnimationRequestId = null;
 // Константы
 const API_BASE = ''; // Пустая строка для локальных запросов
 const FETCH_PREVIOUS_STOP_FOR_CLOSEST_BUS = true; // Включить поиск предыдущей остановки
+const MAX_UNDETERMINED_FUTURE_ARRIVAL_MINUTES = 45; // Максимальное время в будущем для неподтвержденных автобусов
+const NUMBER_OF_BUSES_TO_SHOW = 3; // Количество автобусов для отображения
 
 // Вспомогательные функции
 function getDirectionFromStopName(stopName) {
@@ -188,12 +240,12 @@ export async function simulateAndShowUpcomingBusesForRoute(currentLiveOriginStop
         const routeShape = gtfsData.shapes[shapeId]; 
         if (!routeShape || !routeShape.length) { console.warn(`No shape data for shape_id ${shapeId}`); continue; }
 
-        if (isForLiveViewMode && !currentRoutePolyline && shapeId) { 
+        if (isForLiveViewMode && !window.currentRoutePolyline && shapeId) { 
             liveViewSpecificShapeId = shapeId; 
             const shapePoints = routeShape.map(pt => [pt.lat, pt.lon]); 
             const routeColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(); 
-            currentRoutePolyline = L.polyline(shapePoints, { color: routeColor, weight: 4, opacity: 0.75 }).addTo(map); 
-            elementsToFitInLiveView.push(currentRoutePolyline); 
+            window.currentRoutePolyline = L.polyline(shapePoints, { color: routeColor, weight: 4, opacity: 0.75 }).addTo(map); 
+            elementsToFitInLiveView.push(window.currentRoutePolyline); 
         }
         
         const stopsOnFinalTrip = gtfsData.tripToStops[finalGtfsTrip.trip_id]; 
