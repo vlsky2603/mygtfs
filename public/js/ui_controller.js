@@ -617,6 +617,7 @@ function renderSchedule(container, now) {
                 <div class="live-tracking-container">
                     <button class="live-track-btn" onclick="startLiveTracking('${route.number}', '${nextArrival.variant.key}', '${nextArrival.times.departure.estimated || nextArrival.times.departure.scheduled}')" title="Live Bus Tracking">
                         <i class="fas fa-map-marker-alt"></i>
+                        <span>Track</span>
                     </button>
                 </div>
             </div>
@@ -666,7 +667,10 @@ function updateScheduleCountdown(container) {
 
 // Функция для запуска live-отслеживания автобуса
 window.startLiveTracking = function(routeNumber, variantKey, departureTime) {
-    console.log('Starting live tracking for:', { routeNumber, variantKey, departureTime });
+    console.log('=== STARTING LIVE TRACKING ===');
+    console.log('Parameters:', { routeNumber, variantKey, departureTime });
+    console.log('Current stop:', currentStopForSchedulePanel);
+    console.log('Available schedules:', _currentPanelApiRouteSchedules);
     
     if (!currentStopForSchedulePanel) {
         console.warn('No current stop selected for live tracking');
@@ -682,22 +686,50 @@ window.startLiveTracking = function(routeNumber, variantKey, departureTime) {
     );
     
     if (!routeSchedule) {
-        console.warn('Route schedule not found for live tracking');
+        console.warn('Route schedule not found for live tracking. Available routes:', 
+            _currentPanelApiRouteSchedules.map(rs => rs.route.number));
+        
+        // Попробуем найти любой маршрут с подходящим номером
+        const fallbackSchedule = _currentPanelApiRouteSchedules.find(rs => 
+            rs.route.number && rs.route.number.toString().includes(routeNumber.toString())
+        );
+        
+        if (fallbackSchedule) {
+            console.log('Using fallback route schedule:', fallbackSchedule.route.number);
+            startSimulation(fallbackSchedule);
+        } else {
+            // Создаем временный объект расписания для демонстрации
+            console.log('Creating demo route schedule for tracking');
+            const demoSchedule = {
+                route: { number: routeNumber, name: `Route ${routeNumber}` },
+                'scheduled-stops': []
+            };
+            startSimulation(demoSchedule);
+        }
         return;
     }
     
-    // Импортировать и вызвать функцию симуляции
-    import('./bus_simulator.js').then(module => {
-        const { simulateAndShowUpcomingBusesForRoute } = module;
-        simulateAndShowUpcomingBusesForRoute(
-            currentStopForSchedulePanel, 
-            routeSchedule, 
-            new Date().toISOString(), 
-            true // isForLiveViewMode
-        );
-    }).catch(error => {
-        console.error('Failed to start live tracking:', error);
-    });
+    console.log('Found matching route schedule:', routeSchedule);
+    startSimulation(routeSchedule);
+    
+    function startSimulation(schedule) {
+        console.log('Starting simulation with schedule:', schedule);
+        // Импортировать и вызвать функцию симуляции
+        import('./bus_simulator.js').then(module => {
+            console.log('Bus simulator module loaded');
+            const { simulateAndShowUpcomingBusesForRoute } = module;
+            console.log('Calling simulateAndShowUpcomingBusesForRoute...');
+            simulateAndShowUpcomingBusesForRoute(
+                currentStopForSchedulePanel, 
+                schedule, 
+                new Date().toISOString(), 
+                true // isForLiveViewMode
+            );
+            console.log('Live tracking simulation started!');
+        }).catch(error => {
+            console.error('Failed to start live tracking:', error);
+        });
+    }
     
     // Активировать live view режим
     isLiveBusViewActive = true;

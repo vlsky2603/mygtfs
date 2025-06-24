@@ -12,6 +12,25 @@ let smoothAnimationRequestId = null;
 
 // Константы
 const API_BASE = ''; // Пустая строка для локальных запросов
+const FETCH_PREVIOUS_STOP_FOR_CLOSEST_BUS = true; // Включить поиск предыдущей остановки
+
+// Вспомогательные функции
+function getDirectionFromStopName(stopName) {
+    if (!stopName) return null;
+    const name = stopName.toLowerCase();
+    if (name.includes('northbound') || name.includes(' nb ')) return 'northbound';
+    if (name.includes('southbound') || name.includes(' sb ')) return 'southbound';
+    if (name.includes('eastbound') || name.includes(' eb ')) return 'eastbound';
+    if (name.includes('westbound') || name.includes(' wb ')) return 'westbound';
+    return null;
+}
+
+function mapDirectionToGtfsId(direction, routeId) {
+    // Простая заглушка - возвращаем 0 или 1
+    if (direction === 'northbound' || direction === 'eastbound') return 0;
+    if (direction === 'southbound' || direction === 'westbound') return 1;
+    return 0;
+}
 
 function generateBusId(busData) { return `${busData.gtfsTripId}_${new Date(busData.effectiveDepartureTime).getTime()}`; }
 
