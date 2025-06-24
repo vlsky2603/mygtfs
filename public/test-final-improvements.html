@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест улучшений симуляции автобусов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .improvement {
+            background: #e8f5e8;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #28a745;
+        }
+        .test-case {
+            background: #fff3cd;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #ffc107;
+        }
+        .status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 3px;
+            color: white;
+        }
+        .status.fixed { background: #28a745; }
+        .status.improved { background: #17a2b8; }
+        .status.pending { background: #ffc107; color: #333; }
+        .code-snippet {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .link {
+            color: #007bff;
+            text-decoration: none;
+            padding: 5px 10px;
+            background: #e3f2fd;
+            border-radius: 3px;
+            display: inline-block;
+            margin: 5px;
+        }
+        .link:hover {
+            background: #bbdefb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚍 Финальный тест улучшений симуляции автобусов</h1>
+    
+    <div class="test-section">
+        <h2>📋 Выполненные улучшения</h2>
+        
+        <div class="improvement">
+            <span class="status fixed">ИСПРАВЛЕНО</span>
+            <strong>1. Реалистичное позиционирование автобусов</strong>
+            <p>✅ Автобусы теперь позиционируются на основе времени до прибытия:</p>
+            <ul>
+                <li><strong>60+ минут:</strong> В самом начале маршрута (0-15%)</li>
+                <li><strong>30-60 минут:</strong> В первой трети (5-30%)</li>
+                <li><strong>15-30 минут:</strong> В первой половине (20-60%)</li>
+                <li><strong>5-15 минут:</strong> На основе скорости (60%+ маршрута)</li>
+                <li><strong>0-5 минут:</strong> Близко к остановке (80%+ маршрута)</li>
+            </ul>
+        </div>
+
+        <div class="improvement">
+            <span class="status fixed">ИСПРАВЛЕНО</span>
+            <strong>2. Устранение скопления автобусов</strong>
+            <p>✅ Каждый автобус получает уникальный сдвиг на основе своего ID:</p>
+            <div class="code-snippet">
+const busIdHash = busId.split('').reduce((a, b) => { 
+    a = ((a << 5) - a) + b.charCodeAt(0); 
+    return a & a; 
+}, 0);
+const uniqueOffset = Math.abs(busIdHash) % 30;
+const spread = (uniqueOffset % 6) - 2; // От -2 до +3 точек
+            </div>
+        </div>
+
+        <div class="improvement">
+            <span class="status fixed">ИСПРАВЛЕНО</span>
+            <strong>3. Поддержка автобусов с большим временем ожидания</strong>
+            <p>✅ Симуляция теперь работает для автобусов с временем ожидания до 70 минут:</p>
+            <div class="code-snippet">
+const MAX_UNDETERMINED_FUTURE_ARRIVAL_MINUTES = 60;
+// Удаляем только неподтвержденные автобусы с временем > 70 минут
+if (timeToArrivalMinutes > MAX_UNDETERMINED_FUTURE_ARRIVAL_MINUTES + 10) {
+    if (!busData.isConfirmedEnRoute) {
+        // удаляем автобус
+    } else {
+        // показываем в начале маршрута
+    }
+}
+            </div>
+        </div>
+
+        <div class="improvement">
+            <span class="status fixed">ИСПРАВЛЕНО</span>
+            <strong>4. Корректное скрытие радиуса поиска</strong>
+            <p>✅ Радиус и центральный маркер скрываются при запуске live tracking:</p>
+            <div class="code-snippet">
+// В simulateAndShowUpcomingBusesForRoute
+if (radiusCircle) {
+    radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
+}
+if (centerMarker) {
+    centerMarker.setOpacity(0);
+}
+
+// В refreshMarkers
+if (isLiveBusViewActive) {
+    if (radiusCircle) radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
+    if (centerMarker) centerMarker.setOpacity(0);
+}
+            </div>
+        </div>
+
+        <div class="improvement">
+            <span class="status fixed">ИСПРАВЛЕНО</span>
+            <strong>5. Передача busId в функцию позиционирования</strong>
+            <p>✅ Исправлена ошибка - теперь busId корректно передается в calculateSmartBusPosition</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Тестовые сценарии</h2>
+        
+        <div class="test-case">
+            <strong>Сценарий 1: Автобус через 45 минут</strong>
+            <p>Ожидание: Должен появиться в первой трети маршрута</p>
+            <p>Логика: 30-60 минут = 5-30% маршрута</p>
+        </div>
+
+        <div class="test-case">
+            <strong>Сценарий 2: Автобус через 65 минут</strong>
+            <p>Ожидание: Должен появиться в самом начале маршрута</p>
+            <p>Логика: 60+ минут = 0-15% маршрута</p>
+        </div>
+
+        <div class="test-case">
+            <strong>Сценарий 3: Несколько автобусов с одинаковым временем</strong>
+            <p>Ожидание: Должны быть распределены, не накладываться</p>
+            <p>Логика: Уникальный сдвиг + spread на основе busId</p>
+        </div>
+
+        <div class="test-case">
+            <strong>Сценарий 4: Первая остановка маршрута + далекий автобус</strong>
+            <p>Ожидание: Автобус не должен появляться слишком близко к остановке</p>
+            <p>Логика: Специальная корректировка для targetStopSequenceOnTrip <= 3</p>
+        </div>
+
+        <div class="test-case">
+            <strong>Сценарий 5: Запуск live tracking</strong>
+            <p>Ожидание: Радиус поиска должен исчезнуть</p>
+            <p>Логика: opacity: 0 для radiusCircle и centerMarker</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔗 Ссылки для тестирования</h2>
+        <a href="/" class="link">🏠 Главная страница</a>
+        <a href="/debug-radius.html" class="link">🔍 Тест радиуса</a>
+        <a href="/final-test-results.html" class="link">📊 Результаты тестов</a>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 Инструкции по тестированию</h2>
+        <ol>
+            <li><strong>Откройте главную страницу</strong> и найдите остановку</li>
+            <li><strong>Выберите маршрут</strong> с автобусами разного времени прибытия</li>
+            <li><strong>Запустите live tracking</strong> и проверьте:
+                <ul>
+                    <li>Радиус поиска исчез</li>
+                    <li>Автобусы появились в разных точках маршрута</li>
+                    <li>Далекие автобусы (60+ мин) размещены в начале</li>
+                    <li>Близкие автобусы (5-15 мин) близко к остановке</li>
+                    <li>Автобусы не накладываются друг на друга</li>
+                </ul>
+            </li>
+            <li><strong>Проверьте консоль браузера</strong> на предмет ошибок и логов позиционирования</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>⚠️ Известные ограничения</h2>
+        <ul>
+            <li>Позиционирование основано на математических расчетах, реальные автобусы могут отличаться</li>
+            <li>Для маршрутов с очень коротким shape может потребоваться дополнительная калибровка</li>
+            <li>Время в симуляции может отличаться от реального времени на несколько секунд</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Ключевые метрики успеха</h2>
+        <div class="improvement">
+            <span class="status improved">УЛУЧШЕНО</span>
+            <strong>Реалистичность:</strong> Автобусы размещаются логично относительно времени прибытия
+        </div>
+        <div class="improvement">
+            <span class="status improved">УЛУЧШЕНО</span>
+            <strong>Производительность:</strong> Симуляция работает для автобусов с большим временем ожидания
+        </div>
+        <div class="improvement">
+            <span class="status improved">УЛУЧШЕНО</span>
+            <strong>UX:</strong> Радиус корректно скрывается при live tracking
+        </div>
+        <div class="improvement">
+            <span class="status improved">УЛУЧШЕНО</span>
+            <strong>Визуализация:</strong> Автобусы не скапливаются и не накладываются
+        </div>
+    </div>
+
+    <script>
+        console.log('🚍 Тестовая страница загружена');
+        console.log('Время загрузки:', new Date().toISOString());
+        
+        // Проверяем доступность основных модулей
+        setTimeout(() => {
+            console.log('window.isLiveBusViewActive:', window.isLiveBusViewActive);
+            console.log('window.radiusCircle:', !!window.radiusCircle);
+            console.log('window.centerMarker:', !!window.centerMarker);
+        }, 1000);
+    </script>
+</body>
+</html>

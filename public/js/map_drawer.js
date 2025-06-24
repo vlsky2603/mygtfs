@@ -53,6 +53,14 @@ export function initMap() {
   map.on('moveend', () => {
     refreshMarkers();
   });
+  
+  // Экспортируем переменные в window для глобального доступа
+  window.map = map;
+  window.radiusCircle = radiusCircle;
+  window.centerMarker = centerMarker;
+  window.markerClusterGroup = markerClusterGroup;
+  window.routeStopMarkersLayerGroup = routeStopMarkersLayerGroup;
+  window.simulatedBusesLayerGroup = simulatedBusesLayerGroup;
 }
 
 function updateMapTiles() {
@@ -99,8 +107,20 @@ export function refreshMarkers(currentMapCenter) {
     const filters = window.filters || {};
     const isLiveBusViewActive = window.isLiveBusViewActive || false;
     
-    if (!allLocalStops?.length || filters.route || isLiveBusViewActive) return;
+    console.log('refreshMarkers called, isLiveBusViewActive:', isLiveBusViewActive);
+    
+    if (!allLocalStops?.length || filters.route || isLiveBusViewActive) {
+        // Если live view активен, НЕ показываем радиус
+        if (isLiveBusViewActive) {
+            console.log('Live view active - keeping radius hidden');
+            if (radiusCircle) radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
+            if (centerMarker) centerMarker.setOpacity(0);
+        }
+        return;
+    }
 
+    // Показываем радиус только если live view НЕ активен
+    console.log('Live view not active - showing radius');
     if (radiusCircle) radiusCircle.setStyle({ opacity: 1, fillOpacity: 0.05 });
     if (centerMarker) centerMarker.setOpacity(1);
 

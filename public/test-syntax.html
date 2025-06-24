@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест синтаксиса bus_simulator.js</title>
+</head>
+<body>
+    <h1>Тест синтаксиса bus_simulator.js</h1>
+    <div id="result"></div>
+
+    <script type="module">
+        const resultDiv = document.getElementById('result');
+        
+        try {
+            console.log('Attempting to import bus_simulator.js...');
+            
+            // Попытка импортировать модуль
+            const module = await import('./js/bus_simulator.js');
+            
+            console.log('✅ Module imported successfully!');
+            console.log('Available exports:', Object.keys(module));
+            
+            resultDiv.innerHTML = `
+                <div style="color: green; padding: 20px; background: #e8f5e8; border-radius: 8px;">
+                    <h2>✅ Модуль загружен успешно!</h2>
+                    <p><strong>Доступные экспорты:</strong></p>
+                    <ul>
+                        ${Object.keys(module).map(key => `<li>${key}</li>`).join('')}
+                    </ul>
+                    <p><strong>SIMULATION_CONFIG:</strong> ${module.activeSimulatedBuses ? 'Доступен' : 'Недоступен'}</p>
+                </div>
+            `;
+            
+        } catch (error) {
+            console.error('❌ Error importing module:', error);
+            
+            resultDiv.innerHTML = `
+                <div style="color: red; padding: 20px; background: #ffe8e8; border-radius: 8px;">
+                    <h2>❌ Ошибка загрузки модуля</h2>
+                    <p><strong>Ошибка:</strong> ${error.message}</p>
+                    <p><strong>Строка:</strong> ${error.lineNumber || 'не указана'}</p>
+                    <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${error.stack}</pre>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -11,7 +11,12 @@ import {
   locateUser, 
   refreshMarkers,
   map,
-  updateMapTheme
+  updateMapTheme,
+  radiusCircle,
+  centerMarker,
+  markerClusterGroup,
+  routeStopMarkersLayerGroup,
+  simulatedBusesLayerGroup
 } from './js/map_drawer.js';
 
 import { 
@@ -81,6 +86,11 @@ console.log('Functions exported successfully');
 // Make map and data globally accessible
 window.map = map;
 window.updateMapTheme = updateMapTheme;
+window.radiusCircle = radiusCircle;
+window.centerMarker = centerMarker;
+window.markerClusterGroup = markerClusterGroup;
+window.routeStopMarkersLayerGroup = routeStopMarkersLayerGroup;
+window.simulatedBusesLayerGroup = simulatedBusesLayerGroup;
 window.allLocalStops = allLocalStops;
 window.gtfsData = gtfsData;
 window.filters = filters;

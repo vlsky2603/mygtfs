@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Bus Simulation</title>
+    <script>
+        function testSimulation() {
+            console.log('=== Тестирование симуляции автобусов ===');
+            
+            // Проверяем доступность функций
+            console.log('window.resetLiveView:', typeof window.resetLiveView);
+            console.log('window.radiusCircle:', window.radiusCircle);
+            console.log('window.centerMarker:', window.centerMarker);
+            console.log('window.isLiveBusViewActive:', window.isLiveBusViewActive);
+            console.log('window.activeSimulatedBuses:', window.activeSimulatedBuses);
+            
+            // Тестируем сброс live view
+            if (typeof window.resetLiveView === 'function') {
+                console.log('Тестируем resetLiveView...');
+                window.resetLiveView();
+                console.log('resetLiveView завершен');
+            }
+        }
+        
+        function checkRadius() {
+            console.log('=== Проверка радиуса ===');
+            const radiusCircle = window.radiusCircle;
+            if (radiusCircle) {
+                const style = radiusCircle.options;
+                console.log('Радиус видимый:', style.opacity, style.fillOpacity);
+            } else {
+                console.log('Радиус не найден');
+            }
+        }
+        
+        function simulateLiveView() {
+            console.log('=== Симуляция Live View ===');
+            window.isLiveBusViewActive = true;
+            
+            // Скрываем радиус
+            if (window.radiusCircle) {
+                window.radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
+                console.log('Радиус скрыт');
+            }
+            
+            if (window.centerMarker) {
+                window.centerMarker.setOpacity(0);
+                console.log('Центральный маркер скрыт');
+            }
+        }
+        
+        setTimeout(() => {
+            console.log('=== Автотест через 3 секунды ===');
+            testSimulation();
+            checkRadius();
+        }, 3000);
+    </script>
+</head>
+<body>
+    <h1>Debug симуляции автобусов</h1>
+    <div>
+        <button onclick="testSimulation()">Тест resetLiveView</button>
+        <button onclick="checkRadius()">Проверить радиус</button>
+        <button onclick="simulateLiveView()">Симулировать Live View</button>
+    </div>
+    <div style="margin-top: 20px;">
+        <iframe src="http://localhost:8080" width="100%" height="600px" style="border: 1px solid #ccc;"></iframe>
+    </div>
+</body>
+</html>

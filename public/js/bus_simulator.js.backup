@@ -486,7 +486,8 @@ function calculateSmartBusPosition(busData, timeToArrivalMinutes, targetStopInde
         }
     }
     // Логика позиционирования в зависимости от времени (fallback если нет данных о предыдущей остановке)
-    else if (timeToArrivalMinutes > SIMULATION_CONFIG.TIME_THRESHOLDS.VERY_FAR) {
+    else if (timeToArrivalMinutes > thresholds.VERY_FAR) {
+    if (timeToArrivalMinutes > SIMULATION_CONFIG.TIME_THRESHOLDS.VERY_FAR) {
         // Очень далекие автобусы - размещаем в самом начале маршрута с разбросом
         const startProgress = Math.min(SIMULATION_CONFIG.ROUTE_PROGRESS.VERY_FAR_MAX, uniqueOffset / 200); // Максимум 15% от начала
         estimatedPosition = tripStartIndex + Math.floor(routeLength * startProgress) + (uniqueOffset % 10);

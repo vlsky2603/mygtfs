@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Отладка радиуса и позиционирования</title>
+    <style>
+        body { font-family: monospace; margin: 20px; background: #f5f5f5; }
+        .panel { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; }
+        .status { padding: 10px; margin: 5px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; background: #007bff; color: white; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; }
+    </style>
+    <script>
+        let logMessages = [];
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logMessages.push(`[${timestamp}] ${message}`);
+            updateLogDisplay();
+        }
+        
+        function updateLogDisplay() {
+            const logDiv = document.getElementById('log');
+            if (logDiv) {
+                logDiv.innerHTML = logMessages.slice(-20).join('\n');
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+        }
+        
+        function checkRadiusStatus() {
+            log('=== Checking radius status ===');
+            
+            const radiusCircle = window.radiusCircle;
+            const centerMarker = window.centerMarker;
+            const isLiveBusViewActive = window.isLiveBusViewActive;
+            
+            log(`isLiveBusViewActive: ${isLiveBusViewActive}`);
+            
+            if (radiusCircle) {
+                log(`Radius opacity: ${radiusCircle.options.opacity}`);
+                log(`Radius fillOpacity: ${radiusCircle.options.fillOpacity}`);
+            } else {
+                log('ERROR: radiusCircle not found');
+            }
+            
+            if (centerMarker) {
+                log(`Center marker opacity: ${centerMarker.options.opacity}`);
+            } else {
+                log('ERROR: centerMarker not found');
+            }
+            
+            const statusDiv = document.getElementById('status');
+            const isRadiusHidden = radiusCircle && radiusCircle.options.opacity === 0;
+            const isCenterHidden = centerMarker && centerMarker.options.opacity === 0;
+            
+            if (isLiveBusViewActive) {
+                if (isRadiusHidden && isCenterHidden) {
+                    statusDiv.innerHTML = '<div class="status success">✅ Live view active, radius and center are correctly hidden</div>';
+                } else {
+                    statusDiv.innerHTML = '<div class="status error">❌ Live view active but radius/center are still visible!</div>';
+                }
+            } else {
+                if (!isRadiusHidden && !isCenterHidden) {
+                    statusDiv.innerHTML = '<div class="status success">✅ Live view inactive, radius and center are correctly visible</div>';
+                } else {
+                    statusDiv.innerHTML = '<div class="status warning">⚠️ Live view inactive but radius/center are hidden</div>';
+                }
+            }
+        }
+        
+        function forceHideRadius() {
+            log('=== Force hiding radius ===');
+            const radiusCircle = window.radiusCircle;
+            const centerMarker = window.centerMarker;
+            
+            if (radiusCircle) {
+                radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
+                log('Radius hidden');
+            }
+            if (centerMarker) {
+                centerMarker.setOpacity(0);
+                log('Center marker hidden');
+            }
+            window.isLiveBusViewActive = true;
+            log('Set isLiveBusViewActive = true');
+            
+            setTimeout(checkRadiusStatus, 100);
+        }
+        
+        function forceShowRadius() {
+            log('=== Force showing radius ===');
+            const radiusCircle = window.radiusCircle;
+            const centerMarker = window.centerMarker;
+            
+            if (radiusCircle) {
+                radiusCircle.setStyle({ opacity: 1, fillOpacity: 0.05 });
+                log('Radius shown');
+            }
+            if (centerMarker) {
+                centerMarker.setOpacity(1);
+                log('Center marker shown');
+            }
+            window.isLiveBusViewActive = false;
+            log('Set isLiveBusViewActive = false');
+            
+            setTimeout(checkRadiusStatus, 100);
+        }
+        
+        function testLiveView() {
+            log('=== Testing live view simulation ===');
+            
+            // Симулируем запуск live view
+            window.isLiveBusViewActive = true;
+            
+            const radiusCircle = window.radiusCircle;
+            const centerMarker = window.centerMarker;
+            
+            if (radiusCircle) {
+                radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
+                log('Live view: radius hidden');
+            }
+            if (centerMarker) {
+                centerMarker.setOpacity(0);
+                log('Live view: center marker hidden');
+            }
+            
+            setTimeout(checkRadiusStatus, 100);
+        }
+        
+        function clearLog() {
+            logMessages = [];
+            updateLogDisplay();
+        }
+        
+        // Автопроверка каждые 3 секунды
+        setInterval(checkRadiusStatus, 3000);
+        
+        // Проверка при загрузке
+        setTimeout(checkRadiusStatus, 1000);
+    </script>
+</head>
+<body>
+    <h1>🔍 Отладка радиуса и позиционирования автобусов</h1>
+    
+    <div class="panel">
+        <h3>Статус радиуса</h3>
+        <div id="status"></div>
+        <button onclick="checkRadiusStatus()">Проверить статус</button>
+        <button onclick="forceHideRadius()">Принудительно скрыть</button>
+        <button onclick="forceShowRadius()">Принудительно показать</button>
+        <button onclick="testLiveView()">Тест Live View</button>
+    </div>
+    
+    <div class="panel">
+        <h3>Лог событий</h3>
+        <pre id="log" class="log"></pre>
+        <button onclick="clearLog()">Очистить лог</button>
+    </div>
+    
+    <div class="panel">
+        <h3>Инструкции по тестированию</h3>
+        <ol>
+            <li>Откройте главное приложение в новой вкладке</li>
+            <li>Кликните на остановку и откройте расписание</li>
+            <li>Нажмите кнопку "Track"</li>
+            <li>Вернитесь сюда и проверьте статус</li>
+            <li>Радиус должен быть скрыт (opacity: 0)</li>
+        </ol>
+        <a href="http://localhost:8080" target="_blank" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Открыть приложение</a>
+    </div>
+</body>
+</html>

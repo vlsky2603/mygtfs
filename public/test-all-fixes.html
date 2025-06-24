@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест исправлений симуляции автобусов</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-step { 
+            margin: 15px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            background: #f9f9f9; 
+        }
+        .test-step h3 { margin-top: 0; color: #333; }
+        .status { 
+            padding: 5px 10px; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            margin-left: 10px; 
+        }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        .pending { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>🚌 Тест исправлений симуляции автобусов</h1>
+    <p>Ниже приведены шаги для проверки всех исправленных багов:</p>
+    
+    <div class="test-step">
+        <h3>1. Скрытие радиуса при запуске симуляции</h3>
+        <p><strong>Ожидаемое поведение:</strong> При нажатии кнопки "Track" в расписании радиус остановок должен исчезнуть</p>
+        <p><strong>Шаги:</strong></p>
+        <ol>
+            <li>Кликните на любую остановку на карте</li>
+            <li>В открывшемся расписании найдите кнопку "Track" возле любого маршрута</li>
+            <li>Нажмите кнопку "Track"</li>
+            <li>Радиус должен исчезнуть, центральный маркер тоже</li>
+        </ol>
+        <span class="status pending">Требует ручной проверки</span>
+    </div>
+
+    <div class="test-step">
+        <h3>2. Выделение остановки-старта</h3>
+        <p><strong>Ожидаемое поведение:</strong> При запуске live tracking остановка должна выделиться зеленым цветом</p>
+        <p><strong>Шаги:</strong></p>
+        <ol>
+            <li>Запустите live tracking (кнопка "Track")</li>
+            <li>Остановка, с которой запущена симуляция, должна стать зеленой</li>
+            <li>При наведении на остановку должен показаться попап "Live Tracking Start"</li>
+        </ol>
+        <span class="status pending">Требует ручной проверки</span>
+    </div>
+
+    <div class="test-step">
+        <h3>3. Корректная позиция автобуса по времени</h3>
+        <p><strong>Ожидаемое поведение:</strong> Автобус должен находиться на правильной позиции относительно времени прибытия</p>
+        <p><strong>Шаги:</strong></p>
+        <ol>
+            <li>Запустите live tracking для маршрута с автобусом через 30+ минут</li>
+            <li>Автобус должен быть далеко от остановки, а не в середине маршрута</li>
+            <li>Автобус должен двигаться в сторону остановки пропорционально времени</li>
+        </ol>
+        <span class="status pending">Требует ручной проверки</span>
+    </div>
+
+    <div class="test-step">
+        <h3>4. Устранение телепортации автобуса</h3>
+        <p><strong>Ожидаемое поведение:</strong> Автобус не должен скакать при наведении курсора</p>
+        <p><strong>Шаги:</strong></p>
+        <ol>
+            <li>Запустите live tracking</li>
+            <li>Наведите курсор на движущийся автобус</li>
+            <li>Автобус НЕ должен телепортироваться в случайное место</li>
+            <li>Должна показаться информация о маршруте в попапе</li>
+        </ol>
+        <span class="status pending">Требует ручной проверки</span>
+    </div>
+
+    <div class="test-step">
+        <h3>5. Плавная анимация движения</h3>
+        <p><strong>Ожидаемое поведение:</strong> Автобус должен двигаться плавно по маршруту</p>
+        <p><strong>Шаги:</strong></p>
+        <ol>
+            <li>Запустите live tracking</li>
+            <li>Наблюдайте за движением автобуса</li>
+            <li>Движение должно быть плавным, без резких скачков</li>
+            <li>Автобус должен следовать по линии маршрута</li>
+        </ol>
+        <span class="status pending">Требует ручной проверки</span>
+    </div>
+
+    <div class="test-step">
+        <h3>6. Корректная работа кнопки сброса</h3>
+        <p><strong>Ожидаемое поведение:</strong> Кнопка "Reset" должна возвращать радиус и очищать симуляцию</p>
+        <p><strong>Шаги:</strong></p>
+        <ol>
+            <li>Запустите live tracking (радиус должен исчезнуть)</li>
+            <li>Нажмите кнопку "Reset" в правом верхнем углу</li>
+            <li>Радиус и центральный маркер должны вернуться</li>
+            <li>Все автобусы должны исчезнуть</li>
+            <li>Зеленая остановка-старт должна исчезнуть</li>
+        </ol>
+        <span class="status pending">Требует ручной проверки</span>
+    </div>
+
+    <br>
+    <div style="padding: 20px; background: #e3f2fd; border-radius: 8px;">
+        <h3>🔗 Ссылки для тестирования:</h3>
+        <a href="http://localhost:8080" target="_blank" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">Основное приложение</a>
+        <a href="http://localhost:8080/debug-simulation.html" target="_blank" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">Debug инструменты</a>
+    </div>
+
+    <br>
+    <div style="padding: 20px; background: #fff3cd; border-radius: 8px;">
+        <h3>⚠️ Примечания:</h3>
+        <ul>
+            <li>Все исправления реализованы в коде</li>
+            <li>Для полного тестирования требуется взаимодействие с реальным приложением</li>
+            <li>Проверьте консоль браузера на наличие ошибок</li>
+            <li>При проблемах обновите страницу (F5)</li>
+        </ul>
+    </div>
+</body>
+</html>

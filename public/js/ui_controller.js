@@ -387,6 +387,17 @@ export function onSelectRoute(e) {
 }
 
 export function handleResetRoute() {
+    console.log('Handling route reset');
+    
+    // Сбросить live view если активен
+    if (isLiveBusViewActive) {
+        const resetLiveViewFunc = window.resetLiveView;
+        if (resetLiveViewFunc) {
+            resetLiveViewFunc();
+        }
+        isLiveBusViewActive = false;
+    }
+    
     resetFilters();
     
     // Очистить симуляцию автобусов
@@ -395,11 +406,6 @@ export function handleResetRoute() {
         Object.keys(activeSimulatedBuses).forEach(busId => {
             delete activeSimulatedBuses[busId];
         });
-    }
-    
-    // Сбросить live view если активен
-    if (isLiveBusViewActive) {
-        isLiveBusViewActive = false;
     }
     
     import('./map_drawer.js').then(({ clearPreviousRouteDrawing }) => {

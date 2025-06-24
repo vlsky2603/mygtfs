@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест скрытия радиуса</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-btn { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .test-btn:hover { background: #0056b3; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+    <script>
+        function checkRadius() {
+            const radiusCircle = window.parent.window?.radiusCircle;
+            const centerMarker = window.parent.window?.centerMarker;
+            
+            const statusDiv = document.getElementById('status');
+            
+            if (!radiusCircle) {
+                statusDiv.innerHTML = '<div class="status error">❌ Радиус не найден в window</div>';
+                return;
+            }
+            
+            const radiusStyle = radiusCircle.options;
+            const isHidden = radiusStyle.opacity === 0 && radiusStyle.fillOpacity === 0;
+            
+            let centerStatus = 'Неизвестно';
+            if (centerMarker) {
+                centerStatus = centerMarker.options.opacity === 0 ? 'Скрыт' : 'Видимый';
+            }
+            
+            statusDiv.innerHTML = `
+                <div class="status info">
+                    <strong>Состояние радиуса:</strong><br>
+                    Opacity: ${radiusStyle.opacity}<br>
+                    FillOpacity: ${radiusStyle.fillOpacity}<br>
+                    Статус: ${isHidden ? '✅ Скрыт' : '❌ Видимый'}<br>
+                    <strong>Центральный маркер:</strong> ${centerStatus}
+                </div>
+            `;
+        }
+        
+        function simulateLiveView() {
+            const radiusCircle = window.parent.window?.radiusCircle;
+            const centerMarker = window.parent.window?.centerMarker;
+            
+            if (radiusCircle) {
+                radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
+                console.log('Radius hidden by test');
+            }
+            if (centerMarker) {
+                centerMarker.setOpacity(0);
+                console.log('Center marker hidden by test');
+            }
+            
+            setTimeout(checkRadius, 100);
+        }
+        
+        function restoreRadius() {
+            const radiusCircle = window.parent.window?.radiusCircle;
+            const centerMarker = window.parent.window?.centerMarker;
+            
+            if (radiusCircle) {
+                radiusCircle.setStyle({ opacity: 1, fillOpacity: 0.05 });
+                console.log('Radius restored by test');
+            }
+            if (centerMarker) {
+                centerMarker.setOpacity(1);
+                console.log('Center marker restored by test');
+            }
+            
+            setTimeout(checkRadius, 100);
+        }
+        
+        function testResetLiveView() {
+            const resetFunc = window.parent.window?.resetLiveView;
+            if (resetFunc) {
+                resetFunc();
+                setTimeout(checkRadius, 100);
+            } else {
+                document.getElementById('status').innerHTML = '<div class="status error">❌ resetLiveView не найден</div>';
+            }
+        }
+        
+        // Автопроверка при загрузке
+        setTimeout(() => {
+            checkRadius();
+            
+            // Проверяем каждые 2 секунды
+            setInterval(checkRadius, 2000);
+        }, 1000);
+    </script>
+</head>
+<body>
+    <h1>🔍 Тест скрытия радиуса при симуляции</h1>
+    
+    <div>
+        <button class="test-btn" onclick="checkRadius()">Проверить состояние радиуса</button>
+        <button class="test-btn" onclick="simulateLiveView()">Симулировать скрытие</button>
+        <button class="test-btn" onclick="restoreRadius()">Восстановить радиус</button>
+        <button class="test-btn" onclick="testResetLiveView()">Тест resetLiveView</button>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+        <h3>Инструкция по тестированию:</h3>
+        <ol>
+            <li>Откройте главное приложение в другой вкладке</li>
+            <li>Кликните на остановку и откройте расписание</li>
+            <li>Нажмите кнопку "Track" в расписании</li>
+            <li>Вернитесь сюда и нажмите "Проверить состояние радиуса"</li>
+            <li>Радиус должен быть скрыт (opacity: 0)</li>
+        </ol>
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <a href="http://localhost:8080" target="_blank" class="test-btn">Открыть главное приложение</a>
+    </div>
+</body>
+</html>
