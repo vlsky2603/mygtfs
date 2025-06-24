@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест функций приложения</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>Тест функций приложения</h1>
+    <div id="test-results"></div>
+    
+    <script type="module">
+        const results = document.getElementById('test-results');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        try {
+            addResult('Начинаем тестирование...', 'info');
+            
+            // Импортируем main_dynamic.js
+            await import('./main_dynamic.js');
+            addResult('✅ main_dynamic.js импортирован успешно', 'success');
+            
+            // Ждем немного чтобы инициализация завершилась
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Проверяем глобальные функции
+            const globalFunctions = [
+                'resetFilters',
+                'updateLiveActivity', 
+                'showSchedulePanel',
+                'buildRouteFromAddresses',
+                'onSelectRoute',
+                'handleResetRoute',
+                'toggleDarkMode',
+                'locateUser',
+                'refreshMarkers',
+                'renderFavoritesPanel',
+                'renderRegularNotificationsPanel',
+                'populateRouteFilter',
+                'checkScheduledNotifications',
+                'updateBusTargetPositions'
+            ];
+            
+            let availableFunctions = 0;
+            globalFunctions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    addResult(`✅ ${funcName} доступна`, 'success');
+                    availableFunctions++;
+                } else {
+                    addResult(`❌ ${funcName} недоступна`, 'error');
+                }
+            });
+            
+            // Проверяем глобальные переменные
+            const globalVars = ['map', 'allLocalStops', 'gtfsData'];
+            let availableVars = 0;
+            globalVars.forEach(varName => {
+                if (window[varName] !== undefined) {
+                    addResult(`✅ ${varName} доступна`, 'success');
+                    availableVars++;
+                } else {
+                    addResult(`❌ ${varName} недоступна`, 'error');
+                }
+            });
+            
+            addResult(`Итог: ${availableFunctions}/${globalFunctions.length} функций, ${availableVars}/${globalVars.length} переменных`, 'info');
+            
+            if (availableFunctions === globalFunctions.length && availableVars === globalVars.length) {
+                addResult('🎉 Все тесты пройдены успешно!', 'success');
+            } else {
+                addResult('⚠️ Некоторые тесты не прошли', 'error');
+            }
+            
+        } catch (error) {
+            console.error('Ошибка тестирования:', error);
+            addResult(`❌ Критическая ошибка: ${error.message}`, 'error');
+        }
+    </script>
+</body>
+</html>

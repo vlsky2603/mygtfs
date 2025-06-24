@@ -181,6 +181,7 @@ app.get('/api/stops/nearby', (req, res) => {
 //               ИСПРАВЛЕННЫЙ МАРШРУТ ДЛЯ РАСПИСАНИЙ
 // ===================================================================
 app.get('/api/stops/:stopId/schedule', async (req, res) => {
+    console.log(`API Request: /api/stops/${req.params.stopId}/schedule from ${req.ip}`);
     const { stopId } = req.params;
     const { usage = 'long', start, end } = req.query;
 

@@ -12,9 +12,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0f2f5">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -49,12 +46,9 @@
         <button id="theme-toggle" class="control-button" title="Toggle Theme">
             <i class="fas fa-moon"></i>
         </button>
-        <!-- ========================================================== -->
-        <!--     КНОПКА ВОЗВРАЩЕНА И АКТИВНА С ПРАВИЛЬНЫМ СТИЛЕМ       -->
-        <!-- ========================================================== -->
         <button id="reset-route-button" class="control-button" title="Clear selected route" style="display: none;">
             <i class="fas fa-route" style="position: relative;">
-                <i class="fas fa-times" style="font-size: 0.6em; position: absolute; top: -2px; right: -2px; color: white; background-color: var(--error-color); border-radius: 50%; padding: 0.15em; line-height: 1;"></i>
+                <i class="fas fa-times" style="font-size: 0.6em; position: absolute; top: -2px; right: -2px; color: white; background-color: var(--error-color); border-radius: 50%; padding: 0.15em;"></i>
             </i>
         </button>
     </div>
@@ -99,7 +93,9 @@
     <div id="favorites-panel" class="panel">
         <div class="panel-header">
             <h3>Favorite Stops</h3>
-            <button id="close-favorites-panel" class="control-button"><i class="fas fa-times"></i></button>
+            <div class="panel-actions">
+                <button id="close-favorites-panel" class="control-button"><i class="fas fa-times"></i></button>
+            </div>
         </div>
         <div class="panel-content">
             <div class="favorites-list-container"></div>
@@ -109,17 +105,24 @@
     <div id="schedule-panel" class="panel">
         <div class="panel-header">
             <h3 id="schedule-panel-title">Schedule</h3>
-            <div class="header-actions-wrapper"></div>
+            <div class="panel-actions">
+                <button id="toggle-favorite-stop" class="control-button" title="Add to Favorites" style="display: none;">
+                    <i class="fas fa-star"></i>
+                </button>
+                <button id="close-schedule-panel" class="control-button" title="Close Schedule">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         <div class="panel-content">
-            <div class="schedule-content"></div>
+            <div id="schedule-content" class="schedule-content"></div>
         </div>
     </div>
 
     <div id="regular-notifications-panel" class="panel">
         <div class="panel-header">
             <h3 id="regular-notifications-panel-title">My Reminders</h3>
-            <div class="header-actions-wrapper">
+            <div class="panel-actions">
                 <button id="add-new-regular-notification-rule" class="control-button" title="Add New Reminder Rule"><i class="fas fa-plus"></i></button>
                 <button id="close-regular-notifications-panel" class="control-button" title="Close Reminders"><i class="fas fa-times"></i></button>
             </div>
@@ -140,14 +143,11 @@
             <label for="route-start-address">From Address:</label>
             <input id="route-start-address" list="start-address-suggestions" class="route-plan-input" type="text" placeholder="802 Saint Paul Avenue">
             <datalist id="start-address-suggestions"></datalist>
-            <label for="route-start-address">From Address:</label>
-            <input id="route-start-address" list="start-address-suggestions" class="route-plan-input" type="text" placeholder="802 Saint Paul Avenue">
-            <datalist id="start-address-suggestions"></datalist>
+            
             <label for="route-end-address">To Address:</label>
             <input id="route-end-address" list="end-address-suggestions" class="route-plan-input" type="text" placeholder="20 El Tassi Drive">
             <datalist id="end-address-suggestions"></datalist>
-            <input id="route-end-address" list="end-address-suggestions" class="route-plan-input" type="text" placeholder="20 El Tassi Drive">
-            <datalist id="end-address-suggestions"></datalist>
+
             <select id="route-plan-start" class="route-plan-input" style="display:none;"></select>
             <select id="route-plan-end" class="route-plan-input" style="display:none;"></select>
             <button id="build-route-button" class="control-button primary">Build Route</button>
@@ -201,19 +201,8 @@
     <!-- Внешние библиотеки -->
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     
-    <!-- Наши новые модули (порядок важен!) -->
-    <script src="/js/utils.js"></script>
-    <script src="/js/favorites_manager.js"></script>
-    <script src="/js/notifications_manager.js"></script>
-    <script src="/js/ui_controller.js"></script>
-    <script src="/js/gtfs_handler.js"></script>
-    <script src="/js/map_drawer.js"></script>
-    <script src="/js/bus_simulator.js"></script>
-    
-    <!-- Главный файл-координатор (загружается последним) -->
-    <script src="/main_dynamic.js"></script>
+    <!-- Главный файл-координатор -->
+    <script type="module" src="/main_dynamic.js"></script>
 </body>
 </html>

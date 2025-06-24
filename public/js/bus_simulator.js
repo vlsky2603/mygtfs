@@ -2,6 +2,17 @@
 //     bus_simulator.js - Симулятор движения автобусов
 // ===================================================================
 
+import { determineSimulationTimeUTC } from './utils.js';
+import { gtfsData } from './gtfs_handler.js';
+import { activeSimulatedBuses, isLiveBusViewActive } from './ui_controller.js';
+import { map, simulatedBusesLayerGroup } from './map_drawer.js';
+
+// Переменные для анимации
+let smoothAnimationRequestId = null;
+
+// Константы
+const API_BASE = ''; // Пустая строка для локальных запросов
+
 function generateBusId(busData) { return `${busData.gtfsTripId}_${new Date(busData.effectiveDepartureTime).getTime()}`; }
 
 async function fetchPreviousStopData(previousStopId, apiRouteNumber, apiVariantKeyForTarget, targetEffectiveDepartureTimeAtCurrentStop) {
@@ -32,7 +43,7 @@ async function fetchPreviousStopData(previousStopId, apiRouteNumber, apiVariantK
     } catch (error) { console.error(`fetchPreviousStopData Error for stop ${previousStopId}:`, error); } return null;
 }
 
-async function simulateAndShowUpcomingBusesForRoute(currentLiveOriginStopData, routeScheduleForSelectedRoute, simulationReferenceTimeStr, isForLiveViewMode = false) {
+export async function simulateAndShowUpcomingBusesForRoute(currentLiveOriginStopData, routeScheduleForSelectedRoute, simulationReferenceTimeStr, isForLiveViewMode = false) {
     if (isForLiveViewMode) { 
         activeSimulatedBuses = {}; 
     } else if (simulatedBusesLayerGroup) { 
@@ -393,7 +404,7 @@ function setupBusForAnimation(busId, busData, routeShape, simulationNowUTC) {
     }
 }
 
-function updateBusTargetPositions() {
+export function updateBusTargetPositions() {
     if (Object.keys(activeSimulatedBuses).length === 0 && !isLiveBusViewActive) return; 
 
     const nowUTCForSim = determineSimulationTimeUTC();
@@ -450,4 +461,15 @@ function startSmoothBusAnimationLoop() {
     if (smoothAnimationRequestId) cancelAnimationFrame(smoothAnimationRequestId);
     function loop() { animateBusesSmoothly(); smoothAnimationRequestId = requestAnimationFrame(loop); }
     smoothAnimationRequestId = requestAnimationFrame(loop);
+}
+
+export function startBusSimulationLoop() {
+    // Запускаем цикл симуляции автобусов
+    console.log('Bus simulation loop started');
+    startSmoothBusAnimationLoop();
+    
+    // Периодически обновляем позиции автобусов
+    setInterval(() => {
+        updateBusTargetPositions();
+    }, 10000); // каждые 10 секунд
 }

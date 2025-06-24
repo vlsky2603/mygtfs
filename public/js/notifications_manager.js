@@ -2,6 +2,38 @@
 //     notifications_manager.js - Менеджер уведомлений
 // ===================================================================
 
+import { determineSimulationTimeUTC } from './utils.js';
+import { allLocalStops, gtfsData } from './gtfs_handler.js';
+
+// Константы
+const NOTIFICATION_CHECK_INTERVAL = 30000;
+const RULE_MONITOR_INTERVAL = 60000;
+const DEFAULT_NOTIFICATION_MINUTES_BEFORE = 5;
+const REGULAR_NOTIFICATIONS_STORAGE_KEY = 'transitMapRegularNotificationRules';
+const API_BASE = window.location.origin;
+
+// Глобальные переменные
+let scheduledNotifications = [];
+export let regularNotificationRules = [];
+let notificationCheckIntervalId = null;
+let ruleMonitorIntervalId = null;
+let iosInfoShown = localStorage.getItem('iosNotificationInfoShown') === 'true';
+
+// Утилитарные функции
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function createToastContainer() {
+    let container = document.getElementById('toast-notifications');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-notifications';
+        document.body.appendChild(container);
+    }
+    return container;
+}
+
 async function ensureNotificationPermission() {
     if (isIOS()) {
         return false;
@@ -26,7 +58,7 @@ async function ensureNotificationPermission() {
     }
 }
 
-async function scheduleNotification(routeNumber, routeName, variantKey, targetTimeISO, minutesBefore, buttonElement, ruleId = null) {
+export async function scheduleNotification(routeNumber, routeName, variantKey, targetTimeISO, minutesBefore, buttonElement, ruleId = null) {
     const isDeviceIOS = isIOS();
     if (isDeviceIOS && !iosInfoShown) {
         alert("On iOS, browser notifications have limitations. You'll see in-app reminders (toasts). For full notifications, please await our upcoming native app!");
@@ -91,7 +123,7 @@ async function scheduleNotification(routeNumber, routeName, variantKey, targetTi
     }
 }
 
-function checkScheduledNotifications() {
+export function checkScheduledNotifications() {
     const nowForSim = determineSimulationTimeUTC(); 
     let activeRemindersPending = false;
 
@@ -165,7 +197,7 @@ function showNotification(notificationData) {
     }
 }
 
-function loadRegularNotificationRules() {
+export function loadRegularNotificationRules() {
     const storedRules = localStorage.getItem(REGULAR_NOTIFICATIONS_STORAGE_KEY);
     if (storedRules) {
         try {
@@ -201,7 +233,7 @@ function saveRegularNotificationRules() {
     }
 }
 
-function renderRegularNotificationsPanel() {
+export function renderRegularNotificationsPanel() {
     const container = document.querySelector('#regular-notifications-panel .regular-notifications-list-container');
     if (!container) return;
     container.innerHTML = '';
@@ -309,7 +341,7 @@ function openRuleEditor(mode = 'add', ruleId = null, preselectedStopData = null)
 function openRuleEditorForAdd() { openRuleEditor('add'); }
 function openRuleEditorForEdit(ruleId) { openRuleEditor('edit', ruleId); }
 
-function closeRuleEditor() {
+export function closeRuleEditor() {
     const modal = document.getElementById('rule-editor-modal');
     modal.classList.remove('modal-visible');
     document.body.classList.remove('modal-open');
@@ -444,7 +476,7 @@ function deleteRule(ruleId) {
     }
 }
 
-function startRuleMonitor() {
+export function startRuleMonitor() {
     if (ruleMonitorIntervalId) clearInterval(ruleMonitorIntervalId);
     ruleMonitorIntervalId = setInterval(checkAndProcessRegularNotificationRules, RULE_MONITOR_INTERVAL);
     checkAndProcessRegularNotificationRules(); 
@@ -524,4 +556,22 @@ async function checkAndProcessRegularNotificationRules() {
     if (!activeRulesFound && ruleMonitorIntervalId) { 
         stopRuleMonitor();
     }
+}
+
+export function cancelScheduledNotification(notificationId) {
+    const index = scheduledNotifications.findIndex(n => n.id === notificationId);
+    if (index > -1) {
+        const notification = scheduledNotifications[index];
+        scheduledNotifications.splice(index, 1);
+        
+        if (notification.buttonElement) {
+            notification.buttonElement.innerHTML = '<i class="far fa-bell"></i>';
+            notification.buttonElement.title = 'Set reminder (in-app toast)';
+            notification.buttonElement.classList.remove('active-notification');
+        }
+        
+        console.log(`Cancelled notification: ${notificationId}`);
+        return true;
+    }
+    return false;
 }

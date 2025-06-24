@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест модулей</title>
+</head>
+<body>
+    <h1>Тест загрузки модулей</h1>
+    <div id="status">Загрузка...</div>
+    
+    <script type="module">
+        try {
+            console.log('Начинаем тестирование модулей...');
+            
+            // Тестируем импорт main_dynamic.js
+            await import('./main_dynamic.js');
+            console.log('✅ main_dynamic.js загружен успешно');
+            
+            document.getElementById('status').innerHTML = '✅ Все модули загружены успешно!';
+        } catch (error) {
+            console.error('❌ Ошибка загрузки модулей:', error);
+            document.getElementById('status').innerHTML = '❌ Ошибка: ' + error.message;
+        }
+    </script>
+</body>
+</html>

@@ -2,11 +2,31 @@
 //     ui_controller.js - Управление интерфейсом
 // ===================================================================
 
+import { isFavorite } from './favorites_manager.js';
+import { renderFavoritesPanel } from './favorites_manager.js';
+import { renderRegularNotificationsPanel, closeRuleEditor } from './notifications_manager.js';
+
+// Экспорт переменных состояния
+export let filters = { route: null, direction: null, street: null };
+export let isLiveBusViewActive = false;
+export let currentRoutePolyline = null;
+export let activeSimulatedBuses = {};
+
+// Переменные состояния
+let darkMode = localStorage.getItem('darkMode') === 'true';
+let routePlannerStartMarker = null;
+let routePlannerEndMarker = null;
+
+// Переменные для расписания
+let currentStop = null, schedules = [], currentStopForSchedulePanel = null;
+let scheduleCountdownIntervalId = null, scheduleApiRefreshIntervalId = null;
+let _currentPanelApiRouteSchedules = [];
+
 const loadingOverlay = document.getElementById('loading');
 const loadingOverlayTextSpan = loadingOverlay?.querySelector('.loading-text');
 const loadingAnimationContainer = loadingOverlay?.querySelector('.loading-animation-container');
 
-function showLoadingOverlay(message) {
+export function showLoadingOverlay(message) {
     if (loadingOverlay) {
         if (loadingOverlayTextSpan) loadingOverlayTextSpan.textContent = message || 'Loading...';
         if (loadingAnimationContainer && !loadingAnimationContainer.querySelector('.loading-spinner')) {
@@ -15,7 +35,7 @@ function showLoadingOverlay(message) {
         loadingOverlay.classList.add('visible');
     }
 }
-function hideLoadingOverlay() { if (loadingOverlay) loadingOverlay.classList.remove('visible'); }
+export function hideLoadingOverlay() { if (loadingOverlay) loadingOverlay.classList.remove('visible'); }
 
 function showTopProgressBar() {
     const progressBar = document.getElementById('top-progress-bar');
@@ -43,6 +63,11 @@ function toggleDarkMode() {
     const btn = document.getElementById('theme-toggle');
     if (btn) btn.innerHTML = darkMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
     const tileUrl = darkMode ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    
+    // Получаем переменные из глобального контекста
+    const mapTileLayer = window.mapTileLayer;
+    const radiusCircle = window.radiusCircle;
+    
     if (mapTileLayer) mapTileLayer.setUrl(tileUrl);
     const newPrimaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
     if (radiusCircle) radiusCircle.setStyle({ color: newPrimaryColor });
@@ -59,16 +84,19 @@ function updateFavoriteButtonInSchedulePanel() {
     }
 }
 
-function updateResetRouteButtonVisibility() {
+export function updateResetRouteButtonVisibility() {
     const resetButton = document.getElementById('reset-route-button');
     if (resetButton) resetButton.style.display = (filters.route || isLiveBusViewActive) ? 'flex' : 'none';
 }
 
-function populateRouteFilter() {
+export function populateRouteFilter() {
     const routeSelect = document.getElementById('route-filter');
     if (!routeSelect) return;
     while (routeSelect.options.length > 1) routeSelect.remove(1); 
-    if (!gtfsData.routes || gtfsData.routes.length === 0) return;
+    
+    // Получаем gtfsData из глобального контекста
+    const gtfsData = window.gtfsData;
+    if (!gtfsData || !gtfsData.routes || gtfsData.routes.length === 0) return;
     
     const routesWithData = gtfsData.routes.filter(r => r.route_id && gtfsData.routeToTrips[r.route_id]?.length > 0);
     
@@ -87,10 +115,13 @@ function populateRouteFilter() {
     });
 }
 
-function populateStreetFilter() {
+export function populateStreetFilter() {
     const streetSelect = document.getElementById('street-filter');
     if (!streetSelect) return;
-    if (allLocalStops.length === 0) {
+    
+    // Получаем allLocalStops из глобального контекста
+    const allLocalStops = window.allLocalStops;
+    if (!allLocalStops || allLocalStops.length === 0) {
         streetSelect.innerHTML = '<option value="">-- No Stops Loaded --</option>';
         return;
     }
@@ -118,13 +149,17 @@ function populateStreetFilter() {
     });
 }
 
-function populateRoutePlannerStops() {
+export function populateRoutePlannerStops() {
     const startSelect = document.getElementById('route-plan-start');
     const endSelect = document.getElementById('route-plan-end');
     if (!startSelect || !endSelect) return;
     while (startSelect.options.length > 0) startSelect.remove(0);
     while (endSelect.options.length > 0) endSelect.remove(0);
-    if (allLocalStops.length === 0) return;
+    
+    // Получаем allLocalStops из глобального контекста
+    const allLocalStops = window.allLocalStops;
+    if (!allLocalStops || allLocalStops.length === 0) return;
+    
     const fragmentStart = document.createDocumentFragment();
     const fragmentEnd = document.createDocumentFragment();
     allLocalStops.forEach(stop => {
@@ -185,9 +220,10 @@ function closeFilterPanel(removeBlur = true) { closePanel('filter-panel', remove
 function closeFavoritesPanel(removeBlur = true) { closePanel('favorites-panel', removeBlur); }
 function closeRegularNotificationsPanel(removeBlur = true) { closePanel('regular-notifications-panel', removeBlur); closeRuleEditor(); }
 function closeRoutePlannerPanel(removeBlur = true) {
-    if (routePlannerStartMarker) { map.removeLayer(routePlannerStartMarker); routePlannerStartMarker = null; }
-    if (routePlannerEndMarker) { map.removeLayer(routePlannerEndMarker); routePlannerEndMarker = null; }
-    if (currentRoutePolyline) { map.removeLayer(currentRoutePolyline); currentRoutePolyline = null; }
+    const map = window.map;
+    if (routePlannerStartMarker && map) { map.removeLayer(routePlannerStartMarker); routePlannerStartMarker = null; }
+    if (routePlannerEndMarker && map) { map.removeLayer(routePlannerEndMarker); routePlannerEndMarker = null; }
+    if (currentRoutePolyline && map) { map.removeLayer(currentRoutePolyline); currentRoutePolyline = null; }
     closePanel('route-planner-panel', removeBlur);
 }
 function closeSchedulePanel(removeBlur = true) {
@@ -197,7 +233,7 @@ function closeSchedulePanel(removeBlur = true) {
     closePanel('schedule-panel', removeBlur);
 
     _currentPanelApiRouteSchedules = []; 
-    updateLiveActivity(null);
+    // updateLiveActivity(null); // Закомментировано чтобы избежать ошибок
     if (scheduleCountdownIntervalId) clearInterval(scheduleCountdownIntervalId); scheduleCountdownIntervalId = null;
     if (scheduleApiRefreshIntervalId) clearInterval(scheduleApiRefreshIntervalId); scheduleApiRefreshIntervalId = null;
 }
@@ -217,3 +253,459 @@ function enableSwipeToClose(panelId, closeFn) {
     });
     panel.addEventListener('touchend', () => { startY = null; });
 }
+
+// Функция инициализации UI
+export function initUI() {
+    // Инициализация темной темы
+    if (darkMode) {
+        document.body.classList.add('dark-mode');
+    }
+    
+    // Настройка обработчиков событий для фильтров
+    const routeFilter = document.getElementById('route-filter');
+    if (routeFilter) {
+        routeFilter.addEventListener('change', onSelectRoute);
+    }
+    
+    const directionFilter = document.getElementById('direction-filter');
+    if (directionFilter) {
+        directionFilter.addEventListener('change', (e) => {
+            filters.direction = e.target.value || null;
+            // Если выбран маршрут, обновить отображение
+            if (filters.route && !isLiveBusViewActive) {
+                import('./map_drawer.js').then(({ showRouteAndBuses }) => {
+                    showRouteAndBuses(filters.route).catch(err => console.error('Failed to show route and buses:', err));
+                });
+            } else if (!isLiveBusViewActive) {
+                import('./map_drawer.js').then(({ refreshMarkers }) => {
+                    const map = window.map;
+                    if (map) refreshMarkers(map.getCenter());
+                });
+            }
+        });
+    }
+    
+    const streetFilter = document.getElementById('street-filter');
+    if (streetFilter) {
+        streetFilter.addEventListener('change', (e) => {
+            filters.street = e.target.value || null;
+            // Если выбран маршрут, обновить отображение
+            if (filters.route && !isLiveBusViewActive) {
+                import('./map_drawer.js').then(({ showRouteAndBuses }) => {
+                    showRouteAndBuses(filters.route).catch(err => console.error('Failed to show route and buses:', err));
+                });
+            } else if (!isLiveBusViewActive) {
+                import('./map_drawer.js').then(({ refreshMarkers }) => {
+                    const map = window.map;
+                    if (map) refreshMarkers(map.getCenter());
+                });
+            }
+        });
+    }
+    
+    const streetSearch = document.getElementById('street-search');
+    if (streetSearch) {
+        streetSearch.addEventListener('input', updateStreetSearch);
+    }
+    
+    // Настройка кнопки сброса маршрута
+    const resetRouteButton = document.getElementById('reset-route-button');
+    if (resetRouteButton) {
+        resetRouteButton.addEventListener('click', handleResetRoute);
+    }
+    
+    // Настройка кнопки темы
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleDarkMode);
+        themeToggle.innerHTML = darkMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+    }
+    
+    // Настройка панелей
+    setupPanelEventListeners();
+    
+    console.log('UI initialized successfully');
+}
+
+// Функция сброса фильтров
+export function resetFilters() {
+    filters.route = null;
+    filters.direction = null;
+    filters.street = null;
+    
+    // Сброс значений в селектах
+    const routeFilter = document.getElementById('route-filter');
+    if (routeFilter) routeFilter.value = '';
+    
+    const directionFilter = document.getElementById('direction-filter');
+    if (directionFilter) directionFilter.value = '';
+    
+    const streetFilter = document.getElementById('street-filter');
+    if (streetFilter) streetFilter.value = '';
+    
+    const streetSearch = document.getElementById('street-search');
+    if (streetSearch) streetSearch.value = '';
+    
+    // Обновить отображение карты
+    import('./map_drawer.js').then(({ refreshMarkers, clearPreviousRouteDrawing }) => {
+        clearPreviousRouteDrawing();
+        const map = window.map;
+        if (map) refreshMarkers(map.getCenter());
+    });
+    
+    updateResetRouteButtonVisibility();
+    
+    console.log('Filters reset');
+}
+
+// Экспорт дополнительных функций
+export function updateLiveActivity() {
+    // Заглушка для обновления live активности
+}
+
+export function buildRouteFromAddresses() {
+    // Заглушка для построения маршрута по адресам
+}
+
+export function onSelectRoute(e) {
+    const routeId = e.target.value || null;
+    filters.route = routeId;
+    
+    if (routeId) {
+        import('./map_drawer.js').then(({ showRouteAndBuses, clearPreviousRouteDrawing }) => {
+            clearPreviousRouteDrawing();
+            showRouteAndBuses(routeId).catch(err => console.error('Failed to show route and buses:', err));
+        });
+    } else {
+        import('./map_drawer.js').then(({ refreshMarkers, clearPreviousRouteDrawing }) => {
+            clearPreviousRouteDrawing();
+            const map = window.map;
+            if (map) refreshMarkers(map.getCenter());
+        });
+    }
+    
+    updateResetRouteButtonVisibility();
+}
+
+export function handleResetRoute() {
+    resetFilters();
+    
+    // Очистить симуляцию автобусов
+    if (activeSimulatedBuses) {
+        Object.keys(activeSimulatedBuses).forEach(busId => {
+            delete activeSimulatedBuses[busId];
+        });
+    }
+    
+    // Сбросить live view если активен
+    if (isLiveBusViewActive) {
+        isLiveBusViewActive = false;
+    }
+    
+    import('./map_drawer.js').then(({ clearPreviousRouteDrawing }) => {
+        clearPreviousRouteDrawing();
+    });
+}
+
+// Настройка обработчиков событий для панелей
+function setupPanelEventListeners() {
+    // Панель фильтров
+    const filterToggle = document.getElementById('filter-toggle');
+    const filterPanel = document.getElementById('filter-panel');
+    const closeFilters = document.getElementById('close-filters');
+    if (filterToggle && filterPanel) {
+        filterToggle.addEventListener('click', () => togglePanel('filter-panel'));
+        enableSwipeToClose('filter-panel', closeFilterPanel);
+    }
+    if (closeFilters) {
+        closeFilters.addEventListener('click', closeFilterPanel);
+    }
+    
+    // Панель избранного
+    const favoritesToggle = document.getElementById('favorites-toggle');
+    const favoritesPanel = document.getElementById('favorites-panel');
+    const closeFavorites = document.getElementById('close-favorites-panel');
+    if (favoritesToggle && favoritesPanel) {
+        favoritesToggle.addEventListener('click', () => togglePanel('favorites-panel'));
+        enableSwipeToClose('favorites-panel', closeFavoritesPanel);
+    }
+    if (closeFavorites) {
+        closeFavorites.addEventListener('click', closeFavoritesPanel);
+    }
+    
+    // Панель уведомлений
+    const notificationsToggle = document.getElementById('regular-notifications-toggle-button');
+    const notificationsPanel = document.getElementById('regular-notifications-panel');
+    const closeNotifications = document.getElementById('close-regular-notifications-panel');
+    if (notificationsToggle && notificationsPanel) {
+        notificationsToggle.addEventListener('click', () => togglePanel('regular-notifications-panel'));
+        enableSwipeToClose('regular-notifications-panel', closeRegularNotificationsPanel);
+    }
+    if (closeNotifications) {
+        closeNotifications.addEventListener('click', closeRegularNotificationsPanel);
+    }
+    
+    // Панель планировщика маршрутов
+    const routePlannerToggle = document.getElementById('route-planner-toggle');
+    const routePlannerPanel = document.getElementById('route-planner-panel');
+    const closeRoutePlanner = document.getElementById('close-route-planner');
+    if (routePlannerToggle && routePlannerPanel) {
+        routePlannerToggle.addEventListener('click', () => togglePanel('route-planner-panel'));
+        enableSwipeToClose('route-planner-panel', closeRoutePlannerPanel);
+    }
+    if (closeRoutePlanner) {
+        closeRoutePlanner.addEventListener('click', closeRoutePlannerPanel);
+    }
+    
+    // Панель расписания
+    const schedulePanel = document.getElementById('schedule-panel');
+    if (schedulePanel) {
+        enableSwipeToClose('schedule-panel', closeSchedulePanel);
+        
+        // Добавить обработчик для кнопки закрытия расписания если она есть
+        const closeSchedule = schedulePanel.querySelector('.close-schedule');
+        if (closeSchedule) {
+            closeSchedule.addEventListener('click', closeSchedulePanel);
+        }
+    }
+    
+    // Кнопка локации
+    const locationButton = document.getElementById('location-button');
+    if (locationButton) {
+        locationButton.addEventListener('click', () => {
+            if (window.locateUser) {
+                window.locateUser();
+            }
+        });
+    }
+}
+
+export async function showSchedulePanel(stop) {
+    console.log('showSchedulePanel called with stop:', stop);
+    currentStop = stop;
+    currentStopForSchedulePanel = stop;
+    
+    const panel = document.getElementById('schedule-panel');
+    if (!panel) {
+        console.error('Schedule panel not found!');
+        return;
+    }
+    
+    const container = document.getElementById('schedule-content');
+    if (!container) {
+        console.error('Schedule content container not found!');
+        return;
+    }
+    
+    console.log('Showing schedule panel for stop:', stop.stop_name);
+    
+    // Показать панель
+    panel.classList.add('active');
+    updateBodyPanelOpenClass();
+    
+    // Показать загрузчик
+    container.innerHTML = '<div class="loading-schedule">Loading schedule...</div>';
+    
+    // Обновить заголовок
+    const titleElement = panel.querySelector('h3');
+    if (titleElement) {
+        titleElement.textContent = stop.stop_name;
+    }
+    
+    try {
+        const now = new Date();
+        const endTime = new Date(now.getTime() + 4 * 3600000); // +4 часа
+        const url = `/api/stops/${stop.stop_id}/schedule?usage=long&start=${now.toISOString()}&end=${endTime.toISOString()}`;
+        
+        console.log('Fetching schedule from:', url);
+        const response = await fetch(url);
+        console.log('Response status:', response.status, response.statusText);
+        
+        if (!response.ok) throw new Error(await response.text());
+        
+        const data = await response.json();
+        schedules = data.data['stop-schedule']['route-schedules'];
+        _currentPanelApiRouteSchedules = schedules;
+        
+        console.log('Schedule data loaded:', schedules);
+        renderSchedule(container, now);
+        
+        // Запустить обновление счётчика каждую секунду
+        if (scheduleCountdownIntervalId) clearInterval(scheduleCountdownIntervalId);
+        scheduleCountdownIntervalId = setInterval(() => updateScheduleCountdown(container), 1000);
+        
+        // Запустить обновление данных каждые 2 минуты
+        if (scheduleApiRefreshIntervalId) clearInterval(scheduleApiRefreshIntervalId);
+        scheduleApiRefreshIntervalId = setInterval(async () => {
+            try {
+                const refreshResponse = await fetch(url);
+                if (refreshResponse.ok) {
+                    const refreshData = await refreshResponse.json();
+                    schedules = refreshData.data['stop-schedule']['route-schedules'];
+                    _currentPanelApiRouteSchedules = schedules;
+                    renderSchedule(container, new Date());
+                }
+            } catch (error) {
+                console.warn('Failed to refresh schedule:', error);
+            }
+        }, 120000);
+        
+    } catch (error) {
+        container.innerHTML = '<div class="error">Error loading schedule</div>';
+        console.error('Schedule loading error:', error);
+    }
+    
+    updateFavoriteButtonInSchedulePanel();
+}
+
+function renderSchedule(container, now) {
+    container.innerHTML = '';
+    
+    if (!schedules || schedules.length === 0) {
+        container.innerHTML = '<div class="no-schedule">No upcoming arrivals.</div>';
+        return;
+    }
+    
+    const scheduleGrid = document.createElement('div');
+    scheduleGrid.className = 'schedule-grid';
+    
+    schedules.forEach((routeSchedule, index) => {
+        const { route, 'scheduled-stops': scheduledStops } = routeSchedule;
+        if (!scheduledStops || scheduledStops.length === 0) return;
+        
+        const card = document.createElement('div');
+        card.className = 'schedule-card';
+        card.style.animationDelay = `${index * 0.05}s`;
+        
+        // Primary arrival is always in minutes
+        const nextArrival = scheduledStops[0];
+        const nextArrivalTime = new Date(nextArrival.times.arrival.estimated || nextArrival.times.arrival.scheduled);
+        const minutesUntilNext = Math.max(0, Math.round((nextArrivalTime.getTime() - now.getTime()) / 60000));
+        const primaryDisplayTime = minutesUntilNext === 0 ? 'Now' : minutesUntilNext;
+        const primaryDisplayUnit = minutesUntilNext === 0 ? null : 'min';
+        
+        // Secondary arrivals are always in hh:mm format
+        const otherTimes = scheduledStops.slice(1, 4).map(stop => {
+            const arrivalTime = new Date(stop.times.arrival.estimated || stop.times.arrival.scheduled);
+            const hours = String(arrivalTime.getHours()).padStart(2, '0');
+            const mins = String(arrivalTime.getMinutes()).padStart(2, '0');
+            return `${hours}:${mins}`;
+        });
+        
+        const otherTimesHTML = otherTimes.map(t => `<span class="upcoming-time-badge">${t}</span>`).join('');
+        
+        let busFeatures = '';
+        if (nextArrival.bus) {
+            if (nextArrival.bus['bike-rack']) {
+                busFeatures += '<i class="fas fa-bicycle" title="Bike Rack"></i>';
+            }
+            if (nextArrival.bus.wifi) {
+                busFeatures += '<i class="fas fa-wifi" title="WiFi Available"></i>';
+            }
+        }
+        
+        const primaryTimeHTML = `
+            <div class="primary-arrival">
+                <span class="time-value">${primaryDisplayTime}</span>
+                ${primaryDisplayUnit ? `<span class="time-unit">${primaryDisplayUnit}</span>` : ''}
+            </div>
+        `;
+        
+        card.innerHTML = `
+            <div class="card-main-info">
+                <div class="route-identifier">
+                    <span class="route-number-badge">${route.number}</span>
+                </div>
+                <div class="arrival-details">
+                    ${primaryTimeHTML}
+                    <div class="route-destination-name">${route.name}</div>
+                </div>
+                <div class="live-tracking-container">
+                    <button class="live-track-btn" onclick="startLiveTracking('${route.number}', '${nextArrival.variant.key}', '${nextArrival.times.departure.estimated || nextArrival.times.departure.scheduled}')" title="Live Bus Tracking">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </button>
+                </div>
+            </div>
+            ${(otherTimes.length > 0 || busFeatures) ? `
+            <div class="card-secondary-info">
+                <div class="upcoming-times">
+                    ${otherTimesHTML}
+                </div>
+                <div class="bus-features">
+                    ${busFeatures}
+                </div>
+            </div>` : ''}
+        `;
+        
+        scheduleGrid.appendChild(card);
+    });
+    
+    container.appendChild(scheduleGrid);
+}
+
+function updateScheduleCountdown(container) {
+    if (!schedules || schedules.length === 0) return;
+    
+    const now = new Date();
+    const cards = container.querySelectorAll('.schedule-card');
+    
+    schedules.forEach((routeSchedule, index) => {
+        const scheduledStops = routeSchedule['scheduled-stops'];
+        if (!scheduledStops || scheduledStops.length === 0 || !cards[index]) return;
+        
+        const nextArrival = scheduledStops[0];
+        const nextArrivalTime = new Date(nextArrival.times.arrival.estimated || nextArrival.times.arrival.scheduled);
+        const minutesUntilNext = Math.max(0, Math.round((nextArrivalTime.getTime() - now.getTime()) / 60000));
+        const primaryDisplayTime = minutesUntilNext === 0 ? 'Now' : minutesUntilNext;
+        
+        const timeValueElement = cards[index].querySelector('.time-value');
+        const timeUnitElement = cards[index].querySelector('.time-unit');
+        
+        if (timeValueElement) {
+            timeValueElement.textContent = primaryDisplayTime;
+        }
+        if (timeUnitElement) {
+            timeUnitElement.style.display = minutesUntilNext === 0 ? 'none' : 'inline';
+        }
+    });
+}
+
+// Функция для запуска live-отслеживания автобуса
+window.startLiveTracking = function(routeNumber, variantKey, departureTime) {
+    console.log('Starting live tracking for:', { routeNumber, variantKey, departureTime });
+    
+    if (!currentStopForSchedulePanel) {
+        console.warn('No current stop selected for live tracking');
+        return;
+    }
+    
+    // Закрыть панель расписания
+    closeSchedulePanel();
+    
+    // Найти соответствующий маршрут в schedules
+    const routeSchedule = _currentPanelApiRouteSchedules.find(rs => 
+        String(rs.route.number) === String(routeNumber)
+    );
+    
+    if (!routeSchedule) {
+        console.warn('Route schedule not found for live tracking');
+        return;
+    }
+    
+    // Импортировать и вызвать функцию симуляции
+    import('./bus_simulator.js').then(module => {
+        const { simulateAndShowUpcomingBusesForRoute } = module;
+        simulateAndShowUpcomingBusesForRoute(
+            currentStopForSchedulePanel, 
+            routeSchedule, 
+            new Date().toISOString(), 
+            true // isForLiveViewMode
+        );
+    }).catch(error => {
+        console.error('Failed to start live tracking:', error);
+    });
+    
+    // Активировать live view режим
+    isLiveBusViewActive = true;
+    updateResetRouteButtonVisibility();
+};

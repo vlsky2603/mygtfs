@@ -1,18 +1,104 @@
+import { allLocalStops, gtfsData } from './gtfs_handler.js';
+import { simulateAndShowUpcomingBusesForRoute } from './bus_simulator.js';
+import { determineSimulationTimeUTC } from './utils.js';
+
 // ===================================================================
 //     map_drawer.js - Отрисовка на карте (v11.2 - Bugfix)
 // ===================================================================
 
-const userLocationIcon = L.divIcon({
-    className: 'user-location-marker-wrapper',
-    html: '<div class="user-location-marker"><div class="user-dot"></div></div>',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
+// Константы
+const FIXED_RADIUS = 400; // Радиус в метрах для отображения остановок
+
+export let map, markerClusterGroup, routeStopMarkersLayerGroup,
+           simulatedBusesLayerGroup, mapTileLayer,
+           centerMarker, radiusCircle, userLocationMarker = null;
+
+export const userLocationIcon = L.divIcon({
+  className:'user-location-marker-wrapper',
+  html:'<div class="user-location-marker"><div class="user-dot"></div></div>',
+  iconSize:[30,30], iconAnchor:[15,15]
 });
 
-function refreshMarkers(currentMapCenter) {
+export function initMap() {
+  // Проверяем, что элемент карты существует
+  const mapElement = document.getElementById('map');
+  if (!mapElement) {
+    throw new Error('Map element with id "map" not found');
+  }
+  
+  // Устанавливаем начальный вид карты (центр Екатеринбурга и масштаб)
+  map = L.map('map').setView([56.8431, 60.6454], 13);
+  L.control.zoom({position:'topright'}).addTo(map);
+  
+  // Initialize map tiles based on theme
+  updateMapTiles();
+  
+  centerMarker = L.marker(map.getCenter(), { icon: L.divIcon({ className: 'center-marker', html: '<div/>' }) }).addTo(map);
+  radiusCircle = L.circle(map.getCenter(), {
+    radius: FIXED_RADIUS,
+    color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(),
+    fillOpacity: 0.05,
+    className: 'radius-circle'
+  }).addTo(map);
+  markerClusterGroup = L.markerClusterGroup().addTo(map);
+  routeStopMarkersLayerGroup = L.layerGroup().addTo(map);
+  simulatedBusesLayerGroup = L.layerGroup().addTo(map);
+
+  // Smoothly update marker and radius position during dragging
+  map.on('move', () => {
+    centerMarker.setLatLng(map.getCenter());
+    radiusCircle.setLatLng(map.getCenter());
+  });
+  // Refresh markers after dragging ends
+  map.on('moveend', () => {
+    refreshMarkers();
+  });
+}
+
+function updateMapTiles() {
+  // Remove existing tile layer
+  if (mapTileLayer) {
+    map.removeLayer(mapTileLayer);
+  }
+  
+  // Always use dark theme since we removed light theme
+  // Dark theme - use CartoDB Dark Matter
+  mapTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors, © CartoDB',
+    subdomains: 'abcd',
+    maxZoom: 19
+  });
+  
+  mapTileLayer.addTo(map);
+}
+
+// Export function to update map theme
+export function updateMapTheme() {
+  if (map && mapTileLayer) {
+    updateMapTiles();
+  }
+}
+
+export function locateUser() {
+  if (!navigator.geolocation) { alert('No Geo'); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const c=[pos.coords.latitude,pos.coords.longitude];
+    if (!userLocationMarker) {
+      userLocationMarker = L.marker(c,{icon:userLocationIcon}).addTo(map);
+    } else userLocationMarker.setLatLng(c);
+    map.setView(c,17);
+  });
+}
+
+export function refreshMarkers(currentMapCenter) {
     if (!map) return;
     currentMapCenter = currentMapCenter || map.getCenter();
     markerClusterGroup.clearLayers();
+    
+    // Получаем значения из глобальных переменных
+    const filters = window.filters || {};
+    const isLiveBusViewActive = window.isLiveBusViewActive || false;
+    
     if (!allLocalStops?.length || filters.route || isLiveBusViewActive) return;
 
     if (radiusCircle) radiusCircle.setStyle({ opacity: 1, fillOpacity: 0.05 });
@@ -41,8 +127,9 @@ function refreshMarkers(currentMapCenter) {
     });
 }
 
-function createStopMarker(stop, isLiveOrigin = false) {
-    const isFav = isFavorite(stop.stop_id);
+export function createStopMarker(stop, isLiveOrigin = false) {
+    const isFavoriteFunc = window.isFavorite || (() => false);
+    const isFav = isFavoriteFunc(stop.stop_id);
     const favoriteClass = isFav ? 'favorite-stop-on-map' : '';
     const liveOriginClass = isLiveOrigin ? 'live-origin-stop-marker' : '';
 
@@ -61,8 +148,16 @@ function createStopMarker(stop, isLiveOrigin = false) {
 
     if (!isLiveOrigin) {
         marker.on('click', (e) => {
+            console.log('Stop marker clicked:', stop);
             L.DomEvent.stopPropagation(e);
-            showSchedulePanel(stop);
+            const showSchedulePanelFunc = window.showSchedulePanel;
+            console.log('showSchedulePanel function available:', !!showSchedulePanelFunc);
+            if (showSchedulePanelFunc) {
+                console.log('Calling showSchedulePanel with stop:', stop);
+                showSchedulePanelFunc(stop);
+            } else {
+                console.error('showSchedulePanel function not found in window object');
+            }
         });
     }
     return marker;
@@ -83,7 +178,7 @@ function createRoutePlannerMarker(lat, lon, type) {
     });
 }
 
-function clearPreviousRouteDrawing() {
+export function clearPreviousRouteDrawing() {
     if (currentRoutePolyline) {
         map.removeLayer(currentRoutePolyline);
         currentRoutePolyline = null;
@@ -97,7 +192,7 @@ function clearPreviousRouteDrawing() {
     liveViewSpecificShapeId = null;
 }
 
-function showRouteAndBuses(routeId) {
+export async function showRouteAndBuses(routeId) {
     clearPreviousRouteDrawing();
     if (isLiveBusViewActive) { 
         deactivateLiveBusView(false); 
@@ -109,7 +204,12 @@ function showRouteAndBuses(routeId) {
         console.error("showRouteAndBuses: GTFS data not fully loaded."); return;
     }
     const tripIdsForRoute = gtfsData.routeToTrips[routeId];
-    if (!tripIdsForRoute || tripIdsForRoute.length === 0) { console.warn(`No trips for route: ${routeId}`); updateResetRouteButtonVisibility(); return; }
+    if (!tripIdsForRoute || tripIdsForRoute.length === 0) { 
+        console.warn(`No trips for route: ${routeId}`); 
+        const updateResetRouteButtonVisibilityFunc = window.updateResetRouteButtonVisibility;
+        if (updateResetRouteButtonVisibilityFunc) updateResetRouteButtonVisibilityFunc();
+        return; 
+    }
 
     // ==========================================================
     //     ↓↓↓ ИСПРАВЛЕНИЕ: Собираем все уникальные линии (shapes) ↓↓↓
@@ -174,9 +274,54 @@ function showRouteAndBuses(routeId) {
 
     if (elementsToFit.length > 0) {
         map.fitBounds(L.featureGroup(elementsToFit).getBounds().pad(0.1), {maxZoom: 16});
-    } else if (currentRoutePolyline) {
-        map.fitBounds(currentRoutePolyline.getBounds().pad(0.1), {maxZoom: 16});
+    } else {
+        const currentRoutePolyline = window.currentRoutePolyline;
+        if (currentRoutePolyline) {
+            map.fitBounds(currentRoutePolyline.getBounds().pad(0.1), {maxZoom: 16});
+        }
     }
 
-    updateResetRouteButtonVisibility();
+    // Запуск симуляции автобусов для маршрута
+    await simulateBusesForRoute(routeId, stopsOnThisRoute);
+
+    const updateResetRouteButtonVisibilityFunc = window.updateResetRouteButtonVisibility;
+    if (updateResetRouteButtonVisibilityFunc) updateResetRouteButtonVisibilityFunc();
+}
+
+// Функция симуляции автобусов для маршрута
+async function simulateBusesForRoute(routeId, stopsOnRoute) {
+    if (!stopsOnRoute || stopsOnRoute.size === 0) return;
+
+    const simulationTime = determineSimulationTimeUTC();
+    
+    // Берём несколько остановок на маршруте для симуляции
+    const stopsArray = Array.from(stopsOnRoute).slice(0, 5); // Ограничиваем количество остановок
+    
+    for (const stopId of stopsArray) {
+        try {
+            const stopData = gtfsData?.stopDetails?.[stopId];
+            if (!stopData) continue;
+
+            // Загружаем расписание для остановки
+            const now = simulationTime;
+            const endTime = new Date(now.getTime() + 2 * 3600000); // +2 часа
+            const url = `/api/stops/${stopId}/schedule?usage=short&start=${now.toISOString()}&end=${endTime.toISOString()}`;
+            
+            const response = await fetch(url);
+            if (!response.ok) continue;
+            
+            const data = await response.json();
+            const routeSchedules = data?.data?.['stop-schedule']?.['route-schedules'] || [];
+            
+            // Найти расписание для нашего маршрута
+            const routeSchedule = routeSchedules.find(rs => String(rs.route.number) === String(routeId));
+            
+            if (routeSchedule) {
+                // Запуск симуляции автобусов для этой остановки
+                await simulateAndShowUpcomingBusesForRoute(stopData, routeSchedule, simulationTime.toISOString(), false);
+            }
+        } catch (error) {
+            console.warn(`Failed to simulate buses for stop ${stopId}:`, error);
+        }
+    }
 }

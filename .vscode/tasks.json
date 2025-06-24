@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "iOS26 Transit - Запуск проекта",
+			"type": "shell",
+			"command": "cd /workspaces/mygtfs && python3 -m http.server 8080",
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

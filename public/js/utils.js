@@ -6,62 +6,38 @@
 // и другие полезные хелперы.
 // ===================================================================
 
-function determineSimulationTimeUTC() {
-    return new Date();
+export function determineSimulationTimeUTC() {
+  return new Date();
 }
 
-function gtfsTimeToSeconds(timeStr) {
-    if (!timeStr || typeof timeStr !== 'string') return null;
-    const parts = timeStr.split(':');
-    if (parts.length !== 3) return null;
-    const hours = parseInt(parts[0], 10);
-    const minutes = parseInt(parts[1], 10);
-    const seconds = parseInt(parts[2], 10);
-    if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) return null;
-    return hours * 3600 + minutes * 60 + seconds;
+export function gtfsTimeToSeconds(timeStr) {
+  if (!timeStr) return null;
+  const [h,m,s] = timeStr.split(':').map(x=>parseInt(x,10));
+  return h*3600 + m*60 + s;
 }
 
-function getDatetimeForGtfsTime(gtfsTimeSeconds, serviceDateUTC) {
-    if (gtfsTimeSeconds === null) return null;
-    const serviceDayStart = new Date(serviceDateUTC);
-    serviceDayStart.setUTCHours(0, 0, 0, 0);
-    return new Date(serviceDayStart.getTime() + gtfsTimeSeconds * 1000);
+export function getDatetimeForGtfsTime(gtfsTimeSeconds, serviceDateUTC) {
+  if (gtfsTimeSeconds == null) return null;
+  const day = new Date(serviceDateUTC);
+  day.setUTCHours(0,0,0,0);
+  return new Date(day.getTime() + gtfsTimeSeconds*1000);
 }
 
-function formatArrivalTime(sStopTimes, nowForFormattingUTC) {
-    const scheduledTimeStr = sStopTimes?.scheduled;
-    const estimatedTimeStr = sStopTimes?.estimated;
-    const effectiveTimeStr = estimatedTimeStr || scheduledTimeStr;
-    if (!effectiveTimeStr) return { text: '', css: '', timestamp: Infinity };
-
-    const targetTimeUTC = new Date(effectiveTimeStr);
-    const diffSeconds = (targetTimeUTC.getTime() - nowForFormattingUTC.getTime()) / 1000;
-    const timestamp = targetTimeUTC.getTime();
-    const min = Math.round(diffSeconds / 60);
-
-     if (min < -10) return { text: '', css: '', timestamp: Infinity };
-    let cssClass = '', displayText = '';
-    if (min <= 1 && min >= -5) { displayText = 'Now'; cssClass = 'now'; }
-    else if (min > 1 && min < 60) { displayText = `${min} min`; cssClass = ''; }
-    else if (min >= 60) {
-        displayText = targetTimeUTC.toLocaleTimeString([], {timeZone: "America/Winnipeg", hour: '2-digit', minute: '2-digit'});
-        cssClass = 'scheduled-time';
-        
-        const nowDateWinnipeg = nowForFormattingUTC.toLocaleDateString("en-CA", {timeZone: "America/Winnipeg"});
-        const targetDateWinnipeg = targetTimeUTC.toLocaleDateString("en-CA", {timeZone: "America/Winnipeg"});
-        if (targetDateWinnipeg !== nowDateWinnipeg) {
-             cssClass += ' future-date';
-        }
-    } else return { text: '', css: '', timestamp: Infinity };
-    
-    if (estimatedTimeStr) {
-        cssClass += ' live';
-    }
-    if (min > 1 && min < 5) cssClass += ' critical-soon';
-    else if (min >= 5 && min < 10) cssClass += ' soon';
-    else if (min >= 10 && min < 20) cssClass += ' approaching';
-
-    return { text: displayText, css: cssClass.trim(), timestamp };
+export async function getAddressSuggestions(query, limit=5) {
+  if (!query||query.length<3) return [];
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=${limit}&q=${encodeURIComponent(query+', Winnipeg')}`;
+  try {
+    const r = await fetch(url,{headers:{'User-Agent':'mygtfs-app'}});
+    if (!r.ok) return [];
+    const data = await r.json();
+    return data.map(i=>({
+      display: i.display_name,
+      lat: +i.lat, lon:+i.lon
+    }));
+  } catch(e){
+    console.error('Address suggestion error',e);
+    return [];
+  }
 }
 
 // Random loading messages removed for cleaner UI
@@ -200,26 +176,6 @@ async function geocodeAddress(address) {
     return null;
 }
 
-async function getAddressSuggestions(query, limit = 5) {
-    if (!query || query.length < 3) return [];
-    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=${limit}&q=${encodeURIComponent(query + ', Winnipeg')}`;
-    try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'mygtfs-app' } });
-        if (!res.ok) return [];
-        const data = await res.json();
-        if (Array.isArray(data)) {
-            return data.map(item => ({
-                display: item.display_name,
-                lat: parseFloat(item.lat),
-                lon: parseFloat(item.lon)
-            }));
-        }
-    } catch (e) {
-        console.error('Address suggestion error:', e);
-    }
-    return [];
-}
-
 function findNearestStop(lat, lon) {
     if (!allLocalStops?.length) return null;
     let nearest = null;
@@ -240,10 +196,3 @@ function findNearestStops(lat, lon, count = 1) {
     return arr.slice(0, count).map(a => a.stop);
 }
 
-function findNearestStops(lat, lon, count = 1) {
-    if (!allLocalStops?.length) return [];
-    const point = L.latLng(lat, lon);
-    const arr = allLocalStops.map(stop => ({ stop, dist: point.distanceTo([stop.stop_lat, stop.stop_lon]) }));
-    arr.sort((a, b) => a.dist - b.dist);
-    return arr.slice(0, count).map(a => a.stop);
-}

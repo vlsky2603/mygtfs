@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест API</title>
+</head>
+<body>
+    <h1>Тест API</h1>
+    <button onclick="testAPI()">Тестировать API</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testAPI() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Загрузка...';
+            
+            try {
+                const response = await fetch('/api/stops/10269/schedule?usage=long&start=2025-06-23T23:44:28.212Z&end=2025-06-24T03:44:28.212Z');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                result.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                result.innerHTML = '<div style="color: red;">Ошибка: ' + error.message + '</div>';
+                console.error('API Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -2,6 +2,24 @@
 //     gtfs_handler.js - Обработчик данных GTFS
 // ===================================================================
 
+import { gtfsTimeToSeconds } from './utils.js';
+import { 
+  populateRouteFilter, 
+  populateStreetFilter, 
+  populateRoutePlannerStops,
+  showLoadingOverlay,
+  hideLoadingOverlay
+} from './ui_controller.js';
+import { loadFavorites } from './favorites_manager.js';
+import { loadRegularNotificationRules, startRuleMonitor, regularNotificationRules } from './notifications_manager.js';
+import { refreshMarkers, map } from './map_drawer.js';
+
+export let gtfsData = {
+  routes:[], trips:[], shapes:{}, stopTimes:[],
+  routeToTrips:{}, tripToShape:{}, tripToStops:{}, stopDetails:{}, stopToTrips:{}
+};
+export let allLocalStops = [];
+
 function parseCSV(csvText, requiredFields = [], fileNameForLogging = "CSV file") {
     const lines = csvText.trim().split(/\r?\n/);
     if (lines.length < 2) return [];
@@ -27,11 +45,11 @@ function parseCSV(csvText, requiredFields = [], fileNameForLogging = "CSV file")
     }).filter(obj => requiredFields.every(rf => obj[rf.toLowerCase()] !== undefined && obj[rf.toLowerCase()] !== null && obj[rf.toLowerCase()] !== ''));
 }
 
-async function loadAndProcessGTFS() {
-    gtfsData.stopDetails = {}; 
-    allLocalStops = []; 
+export async function loadAndProcessGTFS() {
+  gtfsData.stopDetails = {}; 
+  allLocalStops = []; 
 
-    try {
+  try {
         showLoadingOverlay("Loading transit data...");
         const stopsRes = await fetch('./gtfs/stops.txt');
         if (!stopsRes.ok) throw new Error('stops.txt fetch failed with status: ' + stopsRes.status);
