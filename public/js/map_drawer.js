@@ -148,12 +148,9 @@ export function createStopMarker(stop, isLiveOrigin = false) {
 
     if (!isLiveOrigin) {
         marker.on('click', (e) => {
-            console.log('Stop marker clicked:', stop);
             L.DomEvent.stopPropagation(e);
             const showSchedulePanelFunc = window.showSchedulePanel;
-            console.log('showSchedulePanel function available:', !!showSchedulePanelFunc);
             if (showSchedulePanelFunc) {
-                console.log('Calling showSchedulePanel with stop:', stop);
                 showSchedulePanelFunc(stop);
             } else {
                 console.error('showSchedulePanel function not found in window object');

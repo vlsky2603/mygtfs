@@ -481,7 +481,6 @@ function setupPanelEventListeners() {
 }
 
 export async function showSchedulePanel(stop) {
-    console.log('showSchedulePanel called with stop:', stop);
     currentStop = stop;
     currentStopForSchedulePanel = stop;
     
@@ -496,8 +495,6 @@ export async function showSchedulePanel(stop) {
         console.error('Schedule content container not found!');
         return;
     }
-    
-    console.log('Showing schedule panel for stop:', stop.stop_name);
     
     // Показать панель
     panel.classList.add('active');
@@ -517,9 +514,7 @@ export async function showSchedulePanel(stop) {
         const endTime = new Date(now.getTime() + 4 * 3600000); // +4 часа
         const url = `/api/stops/${stop.stop_id}/schedule?usage=long&start=${now.toISOString()}&end=${endTime.toISOString()}`;
         
-        console.log('Fetching schedule from:', url);
         const response = await fetch(url);
-        console.log('Response status:', response.status, response.statusText);
         
         if (!response.ok) throw new Error(await response.text());
         
@@ -527,7 +522,6 @@ export async function showSchedulePanel(stop) {
         schedules = data.data['stop-schedule']['route-schedules'];
         _currentPanelApiRouteSchedules = schedules;
         
-        console.log('Schedule data loaded:', schedules);
         renderSchedule(container, now);
         
         // Запустить обновление счётчика каждую секунду
