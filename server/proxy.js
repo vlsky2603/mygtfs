@@ -248,6 +248,18 @@ app.get('/api/stops/:stopId/schedule', async (req, res) => {
 });
 // ===================================================================
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        port: port,
+        stopsLoaded: stopsData.stops.length,
+        lastUpdated: stopsData.lastUpdated
+    });
+});
+
 // "Catch-all" маршрут для SPA
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
