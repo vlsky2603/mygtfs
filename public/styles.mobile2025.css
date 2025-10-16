@@ -1,0 +1,1222 @@
+/* =================================================================== */
+/*    MOBILE MODERN 2025 - Cutting-Edge Transit App Design            */
+/*    Trends: Glassmorphism, Fluid Design, Dark-First, Micro-interact */
+/* =================================================================== */
+
+/* 1. ШРИФТЫ - Современная типографика 2025 */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    /* === ЦВЕТОВАЯ ПАЛИТРА 2025 === */
+    /* Темная тема (основная) */
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-elevated: #1a1a1a;
+    --bg-glass: rgba(255, 255, 255, 0.05);
+    --bg-glass-strong: rgba(255, 255, 255, 0.08);
+    
+    /* Градиентные акценты */
+    --gradient-purple: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-pink: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --gradient-blue: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --gradient-sunset: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --gradient-green: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+    
+    /* Цвета для статусов */
+    --color-success: #00f2fe;
+    --color-warning: #fee140;
+    --color-error: #f5576c;
+    --color-info: #667eea;
+    
+    /* Текст */
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-tertiary: rgba(255, 255, 255, 0.5);
+    --text-disabled: rgba(255, 255, 255, 0.3);
+    
+    /* Границы */
+    --border-glass: rgba(255, 255, 255, 0.1);
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    
+    /* === ТИПОГРАФИКА === */
+    --font-display: 'Outfit', -apple-system, system-ui, sans-serif;
+    --font-body: 'Inter', -apple-system, system-ui, sans-serif;
+    
+    --text-xs: 12px;
+    --text-sm: 14px;
+    --text-md: 16px;
+    --text-lg: 20px;
+    --text-xl: 24px;
+    --text-2xl: 32px;
+    --text-3xl: 40px;
+    
+    --weight-normal: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+    --weight-bold: 700;
+    --weight-extrabold: 800;
+    
+    /* === СКРУГЛЕНИЯ === */
+    --radius-sm: 12px;
+    --radius-md: 20px;
+    --radius-lg: 28px;
+    --radius-xl: 36px;
+    --radius-full: 9999px;
+    
+    /* === ТЕНИ === */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-glow: 0 0 40px rgba(102, 126, 234, 0.4);
+    
+    /* === АНИМАЦИИ === */
+    --spring-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --spring-smooth: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    --duration-instant: 100ms;
+    --duration-fast: 200ms;
+    --duration-medium: 400ms;
+    --duration-slow: 600ms;
+    
+    /* === SPACING === */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+}
+
+/* Светлая тема (опционально) */
+.light-mode {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-elevated: #ffffff;
+    --bg-glass: rgba(0, 0, 0, 0.02);
+    --bg-glass-strong: rgba(0, 0, 0, 0.05);
+    
+    --text-primary: #000000;
+    --text-secondary: rgba(0, 0, 0, 0.7);
+    --text-tertiary: rgba(0, 0, 0, 0.5);
+    --text-disabled: rgba(0, 0, 0, 0.3);
+    
+    --border-glass: rgba(0, 0, 0, 0.1);
+    --border-subtle: rgba(0, 0, 0, 0.05);
+    
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+    --shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 2. БАЗОВЫЕ СТИЛИ */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-body);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    line-height: 1.5;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    /* Предотвращение pull-to-refresh на iOS */
+    overscroll-behavior-y: none;
+}
+
+/* 3. GLASSMORPHISM COMPONENTS */
+.glass {
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--border-glass);
+}
+
+.glass-strong {
+    background: var(--bg-glass-strong);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    border: 1px solid var(--border-glass);
+}
+
+/* 4. КАРТА */
+#map {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    background: var(--bg-secondary);
+}
+
+/* 5. FLOATING TOP BAR (Локация) */
+.top-location-bar {
+    position: fixed;
+    top: env(safe-area-inset-top, 12px);
+    left: var(--space-4);
+    right: var(--space-4);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-xl);
+    transition: all var(--duration-medium) var(--ease-out-expo);
+}
+
+.top-location-bar .location-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    background: var(--gradient-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: white;
+    flex-shrink: 0;
+}
+
+.top-location-bar .location-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.top-location-bar .location-name {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.top-location-bar .location-sub {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+}
+
+/* 6. FLOATING BOTTOM NAVIGATION */
+#header-controls {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-xl);
+    min-width: 320px;
+    max-width: 400px;
+    width: calc(100% - 32px);
+    box-shadow: var(--shadow-floating);
+    transition: all var(--duration-medium) var(--ease-out-expo);
+}
+
+body.panel-open #header-controls {
+    transform: translateX(-50%) translateY(120px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.nav-button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: all var(--duration-fast) var(--ease-in-out-smooth);
+    flex: 1;
+}
+
+.nav-button .nav-icon {
+    font-size: 24px;
+    transition: transform var(--duration-fast) var(--spring-bounce);
+}
+
+.nav-button .nav-label {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    font-family: var(--font-display);
+}
+
+.nav-button:active .nav-icon {
+    transform: scale(0.9);
+}
+
+.nav-button.active {
+    color: var(--text-primary);
+}
+
+.nav-button.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40%;
+    height: 3px;
+    background: var(--gradient-purple);
+    border-radius: var(--radius-full);
+    animation: slideDown var(--duration-medium) var(--spring-smooth);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Ripple эффект */
+.nav-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.1);
+    transform: translate(-50%, -50%);
+    transition: width var(--duration-medium), height var(--duration-medium);
+}
+
+.nav-button:active::after {
+    width: 100%;
+    height: 100%;
+}
+
+/* 7. BOTTOM SHEET (Панели) */
+.bottom-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1100;
+    max-height: 85vh;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.6);
+    transform: translateY(100%);
+    transition: transform var(--duration-slow) var(--ease-out-expo);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.bottom-sheet.active {
+    transform: translateY(0);
+}
+
+/* Handle для свайпа */
+.sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--text-disabled);
+    border-radius: var(--radius-full);
+    margin: var(--space-3) auto var(--space-2);
+    flex-shrink: 0;
+}
+
+.sheet-header {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+}
+
+.sheet-title {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.sheet-subtitle {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-top: var(--space-1);
+}
+
+.sheet-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-6);
+    overscroll-behavior: contain;
+}
+
+/* Custom scrollbar */
+.sheet-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sheet-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sheet-content::-webkit-scrollbar-thumb {
+    background: var(--text-disabled);
+    border-radius: var(--radius-full);
+}
+
+/* 8. ROUTE CARD (Карточки маршрутов) */
+.route-card {
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-4);
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-in-out-smooth);
+    opacity: 0;
+    animation: cardSlideIn var(--duration-medium) var(--ease-out-expo) forwards;
+}
+
+@keyframes cardSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.route-card:nth-child(1) { animation-delay: 0.05s; }
+.route-card:nth-child(2) { animation-delay: 0.1s; }
+.route-card:nth-child(3) { animation-delay: 0.15s; }
+.route-card:nth-child(4) { animation-delay: 0.2s; }
+.route-card:nth-child(5) { animation-delay: 0.25s; }
+
+.route-card:active {
+    transform: scale(0.98);
+}
+
+/* Gradient border effect on hover */
+.route-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: var(--radius-lg);
+    padding: 1px;
+    background: var(--gradient-purple);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity var(--duration-fast);
+}
+
+.route-card:hover::before {
+    opacity: 1;
+}
+
+.route-badge {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-md);
+    background: var(--gradient-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-extrabold);
+    color: white;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-md);
+}
+
+.route-info-container {
+    flex: 1;
+    min-width: 0;
+}
+
+.route-destination {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.route-details {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.route-time-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-1);
+}
+
+.route-eta {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    background: var(--gradient-blue);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.route-status {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    animation: pulse 2s infinite;
+}
+
+.status-indicator.low {
+    background: var(--color-success);
+}
+
+.status-indicator.medium {
+    background: var(--color-warning);
+}
+
+.status-indicator.high {
+    background: var(--color-error);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+}
+
+/* 9. БУС МАРКЕРЫ - Floating Cards */
+.bus-floating-card {
+    background: var(--bg-elevated);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+    box-shadow: var(--shadow-floating);
+    border: 2px solid var(--border-glass);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 70px;
+    transition: all var(--duration-fast) var(--ease-in-out-smooth);
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.bus-floating-card:hover {
+    transform: scale(1.05);
+}
+
+.bus-route-badge {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-extrabold);
+    background: var(--gradient-purple);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bus-icon {
+    font-size: 28px;
+    color: var(--text-primary);
+}
+
+.bus-eta-badge {
+    background: var(--gradient-blue);
+    color: white;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    font-family: var(--font-display);
+    white-space: nowrap;
+}
+
+/* 10. МАРКЕРЫ ОСТАНОВОК - 3D Pins */
+.stop-pin-3d {
+    position: relative;
+    width: 48px;
+    height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.pin-head-3d {
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-purple);
+    border: 3px solid var(--bg-primary);
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 4px 12px rgba(102, 126, 234, 0.5),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    position: relative;
+    z-index: 2;
+    animation: pinPulse 2s infinite;
+}
+
+@keyframes pinPulse {
+    0%, 100% {
+        box-shadow: 
+            0 4px 12px rgba(102, 126, 234, 0.5),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+    50% {
+        box-shadow: 
+            0 8px 20px rgba(102, 126, 234, 0.8),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+}
+
+.pin-icon-3d {
+    transform: rotate(45deg);
+    font-size: 18px;
+    color: white;
+}
+
+.pin-shadow-3d {
+    position: absolute;
+    bottom: 0;
+    width: 24px;
+    height: 10px;
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.4) 0%, transparent 70%);
+    filter: blur(4px);
+}
+
+/* Избранные остановки */
+.stop-pin-3d.favorite .pin-head-3d {
+    background: var(--gradient-sunset);
+    animation: favoritePulse 2s infinite;
+}
+
+@keyframes favoritePulse {
+    0%, 100% {
+        box-shadow: 
+            0 4px 12px rgba(250, 112, 154, 0.6),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+    50% {
+        box-shadow: 
+            0 8px 24px rgba(250, 112, 154, 1),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* 11. LOADING STATES */
+#loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-medium);
+}
+
+#loading.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.loading-spinner-modern {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--bg-glass-strong);
+    border-top: 4px solid transparent;
+    border-radius: var(--radius-full);
+    animation: spin 1s linear infinite;
+    position: relative;
+}
+
+.loading-spinner-modern::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: var(--radius-full);
+    border: 4px solid transparent;
+    border-top: 4px solid var(--gradient-purple);
+    animation: spin 1.5s linear infinite reverse;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text-modern {
+    margin-top: var(--space-6);
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+}
+
+/* Skeleton loader */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--bg-glass) 0%,
+        var(--bg-glass-strong) 50%,
+        var(--bg-glass) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-md);
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* 12. КНОПКИ И ACTION ELEMENTS */
+.btn-primary {
+    padding: var(--space-4) var(--space-6);
+    background: var(--gradient-purple);
+    color: white;
+    border: none;
+    border-radius: var(--radius-full);
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-in-out-smooth);
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width var(--duration-medium), height var(--duration-medium);
+}
+
+.btn-primary:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn-primary:active {
+    transform: scale(0.95);
+}
+
+.btn-secondary {
+    padding: var(--space-3) var(--space-5);
+    background: var(--bg-glass);
+    backdrop-filter: blur(10px);
+    color: var(--text-primary);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-full);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+}
+
+.btn-secondary:active {
+    transform: scale(0.95);
+}
+
+/* Floating Action Button */
+.fab {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-full);
+    background: var(--gradient-purple);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: var(--shadow-floating);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--spring-bounce);
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
+    right: var(--space-5);
+    z-index: 999;
+}
+
+.fab:active {
+    transform: scale(0.9);
+}
+
+/* 13. TOASTS И NOTIFICATIONS */
+.toast {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 80px);
+    left: var(--space-4);
+    right: var(--space-4);
+    z-index: 2000;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: var(--shadow-floating);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all var(--duration-medium) var(--ease-out-expo);
+    pointer-events: none;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+}
+
+.toast.success {
+    background: rgba(0, 242, 254, 0.1);
+    border: 1px solid rgba(0, 242, 254, 0.3);
+}
+
+.toast.error {
+    background: rgba(245, 87, 108, 0.1);
+    border: 1px solid rgba(245, 87, 108, 0.3);
+}
+
+.toast.info {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.toast-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.toast-message {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+}
+
+/* 14. EMPTY STATES */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-10) var(--space-6);
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 64px;
+    margin-bottom: var(--space-4);
+    opacity: 0.3;
+}
+
+.empty-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.empty-description {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    max-width: 280px;
+}
+
+/* 15. УТИЛИТЫ */
+.gradient-text {
+    background: var(--gradient-purple);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.text-gradient-blue {
+    background: var(--gradient-blue);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.text-gradient-pink {
+    background: var(--gradient-pink);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Вспомогательные классы */
+.hidden {
+    display: none !important;
+}
+
+.invisible {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.no-scroll {
+    overflow: hidden;
+}
+
+/* Safe area padding */
+.safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 16. СОВМЕСТИМОСТЬ СО СТАРЫМ КОДОМ */
+#filter-panel, #schedule-panel, #favorites-panel, #regular-notifications-panel, #route-planner-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1100;
+    max-height: 85vh;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.6);
+    transform: translateY(100%);
+    transition: transform var(--duration-slow) var(--ease-out-expo);
+    display: flex;
+    flex-direction: column;
+}
+
+#schedule-panel.active,
+#filter-panel.active,
+#favorites-panel.active,
+#regular-notifications-panel.active,
+#route-planner-panel.active {
+    transform: translateY(0);
+}
+
+.panel-header {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-header h3 {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-6);
+}
+
+.close-panel {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all var(--duration-fast);
+}
+
+.close-panel:active {
+    transform: scale(0.9);
+}
+
+/* Старые классы для совместимости */
+.control-button {
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+}
+
+.control-button:active {
+    transform: scale(0.95);
+}
+
+.route-item {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-4);
+    display: flex;
+    gap: var(--space-4);
+    transition: all var(--duration-fast);
+}
+
+.route-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-md);
+    background: var(--gradient-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-extrabold);
+    color: white;
+    flex-shrink: 0;
+}
+
+.route-item-details {
+    flex: 1;
+}
+
+.route-name {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+}
+
+.route-headsign {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+/* Occupancy indicators */
+.bus-occupancy-minimal {
+    font-size: 20px;
+}
+
+/* User location marker */
+.user-location-marker .user-dot {
+    width: 28px;
+    height: 28px;
+    background: var(--gradient-blue);
+    border-radius: var(--radius-full);
+    border: 4px solid var(--bg-primary);
+    box-shadow: 
+        0 0 20px rgba(79, 172, 254, 0.8),
+        0 4px 12px rgba(0, 0, 0, 0.4);
+    animation: locationPulse 2s infinite;
+}
+
+@keyframes locationPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 20px rgba(79, 172, 254, 0.8),
+            0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+    50% {
+        box-shadow: 
+            0 0 40px rgba(79, 172, 254, 1),
+            0 8px 20px rgba(0, 0, 0, 0.6);
+    }
+}
+
+/* Progress bar */
+#top-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background: var(--gradient-purple);
+    z-index: 10000;
+    transition: width var(--duration-medium);
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.8);
+}
+
+#top-progress-bar.visible {
+    opacity: 1;
+}
+
+/* Route stops in simulation */
+.route-stop-marker {
+    width: 16px;
+    height: 16px;
+    background: var(--bg-elevated);
+    border: 3px solid var(--gradient-purple);
+    border-radius: var(--radius-full);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 17. АДАПТИВНОСТЬ */
+@media (max-width: 375px) {
+    :root {
+        --text-2xl: 28px;
+        --text-xl: 22px;
+        --space-6: 20px;
+    }
+    
+    #header-controls {
+        min-width: auto;
+        width: calc(100% - 24px);
+    }
+    
+    .route-badge {
+        width: 56px;
+        height: 56px;
+        font-size: var(--text-xl);
+    }
+}
+
+@media (min-width: 768px) {
+    .bottom-sheet,
+    #filter-panel, #schedule-panel, #favorites-panel, #regular-notifications-panel, #route-planner-panel {
+        max-width: 500px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100%);
+    }
+    
+    .bottom-sheet.active,
+    #schedule-panel.active,
+    #filter-panel.active,
+    #favorites-panel.active,
+    #regular-notifications-panel.active,
+    #route-planner-panel.active {
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* 18. ACCESSIBILITY */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus styles */
+*:focus-visible {
+    outline: 2px solid var(--color-info);
+    outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    :root {
+        --border-glass: rgba(255, 255, 255, 0.3);
+        --border-subtle: rgba(255, 255, 255, 0.2);
+    }
+}
+
