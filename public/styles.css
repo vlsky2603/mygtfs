@@ -866,7 +866,14 @@ body.modal-open #header-controls {
     align-items: center;
     justify-content: center;
     z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
     transition: opacity 0.3s ease;
+}
+
+#loading.visible {
+    opacity: 1;
+    pointer-events: all;
 }
 
 #loading.hidden {
@@ -904,6 +911,12 @@ body.modal-open #header-controls {
     z-index: 10000;
     transition: width 0.3s ease;
     box-shadow: 0 0 10px var(--primary-color);
+    opacity: 0;
+}
+
+#top-progress-bar.visible {
+    opacity: 1;
+    width: 100%;
 }
 
 /* USER LOCATION MARKER */
