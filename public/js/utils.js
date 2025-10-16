@@ -7,7 +7,35 @@
 // ===================================================================
 
 function determineSimulationTimeUTC() {
+    // Возвращаем текущее время пользователя (браузера)
     return new Date();
+}
+
+// Получить текущее время в таймзоне Winnipeg для API запросов
+function getCurrentWinnipegTime() {
+    const now = new Date();
+    // Конвертируем в строку Winnipeg времени
+    const winnipegTimeStr = now.toLocaleString('en-US', { 
+        timeZone: 'America/Winnipeg',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    
+    // Парсим строку обратно в Date объект
+    // Формат: "MM/DD/YYYY, HH:mm:ss"
+    const [datePart, timePart] = winnipegTimeStr.split(', ');
+    const [month, day, year] = datePart.split('/');
+    const [hour, minute, second] = timePart.split(':');
+    
+    // Создаем Date в UTC, но со значениями времени Winnipeg
+    const winnipegDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+    
+    return winnipegDate;
 }
 
 function gtfsTimeToSeconds(timeStr) {
@@ -65,6 +93,32 @@ function formatArrivalTime(sStopTimes, nowForFormattingUTC) {
 }
 
 // Random loading messages removed for cleaner UI
+
+// Определение направления из имени остановки
+function getDirectionFromStopName(stopName) {
+    if (!stopName) return null;
+    const nameLower = stopName.toLowerCase();
+    if (nameLower.includes('northbound') || nameLower.includes('nb')) return 'Northbound';
+    if (nameLower.includes('southbound') || nameLower.includes('sb')) return 'Southbound';
+    if (nameLower.includes('eastbound') || nameLower.includes('eb')) return 'Eastbound';
+    if (nameLower.includes('westbound') || nameLower.includes('wb')) return 'Westbound';
+    return null;
+}
+
+// Маппинг направления к GTFS direction_id
+function mapDirectionToGtfsId(directionName, routeId) {
+    if (!directionName) return null;
+    const dirLower = directionName.toLowerCase();
+    
+    // Для большинства маршрутов:
+    // 0 = Outbound (обычно North или East)
+    // 1 = Inbound (обычно South или West)
+    
+    if (dirLower.includes('north') || dirLower.includes('east')) return 0;
+    if (dirLower.includes('south') || dirLower.includes('west')) return 1;
+    
+    return null;
+}
 
 const noScheduleMessages = [ "Looks like the buses are taking a nap here!", "No upcoming buses... time for a Portage Ave stroll?", "This stop is quiet. Too quiet. Maybe a coffee at Timmies?", "Is the bus playing hide and seek? Or just stuck on Pembina?", "Zilch. Nada. No buses soon, sorry eh.", "Even the Goldeyes have more action right now.", "Did a moose eat the schedule for this stop?", "This stop's as empty as the Jets' trophy case... (kidding, mostly!)", "Perhaps it's time to embrace the 'Winterpeg' walk?" ];
 let lastNoScheduleMessageIndex = -1;

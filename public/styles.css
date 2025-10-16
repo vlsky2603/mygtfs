@@ -121,6 +121,134 @@ body.modal-open #header-controls #reset-route-button:hover { opacity: 1; }
 
 /* 6. ИКОНКИ ОСТАНОВОК */
 .stop-marker-wrapper { cursor: pointer; }
+
+/* Яркие заметные пины в стиле Moovit/Momego */
+.momego-stop-pin {
+    position: relative;
+    width: 40px;
+    height: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.momego-stop-pin .pin-head {
+    width: 28px;
+    height: 28px;
+    background: #007aff;
+    border: 3px solid white;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+    transition: all 0.2s ease;
+}
+
+.momego-stop-pin .pin-icon {
+    transform: rotate(45deg);
+    font-size: 14px;
+    color: white;
+    font-weight: bold;
+}
+
+.momego-stop-pin .pin-shadow {
+    width: 16px;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    filter: blur(2px);
+}
+
+.momego-stop-pin:hover .pin-head {
+    transform: rotate(-45deg) scale(1.2);
+    box-shadow: 0 4px 15px rgba(0, 122, 255, 0.6);
+}
+
+.momego-stop-pin:active .pin-head {
+    transform: rotate(-45deg) scale(1.1);
+}
+
+/* Избранные остановки - золотой цвет */
+.momego-stop-pin.favorite-stop-on-map .pin-head {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    border-color: white;
+    box-shadow: 0 3px 12px rgba(255, 215, 0, 0.7);
+    animation: favorite-glow 2s infinite;
+}
+
+.momego-stop-pin.favorite-stop-on-map .pin-icon {
+    color: #ff6b00;
+}
+
+@keyframes favorite-glow {
+    0%, 100% { box-shadow: 0 3px 12px rgba(255, 215, 0, 0.7); }
+    50% { box-shadow: 0 3px 20px rgba(255, 215, 0, 1); }
+}
+
+/* Live origin - зелёный цвет */
+.momego-stop-pin.live-origin-stop-marker .pin-head {
+    background: #4cd964;
+    border-color: white;
+    box-shadow: 0 3px 12px rgba(76, 217, 100, 0.7);
+    animation: pulse-live-pin 2s infinite;
+}
+
+@keyframes pulse-live-pin {
+    0%, 100% { box-shadow: 0 3px 12px rgba(76, 217, 100, 0.7); }
+    50% { box-shadow: 0 3px 20px rgba(76, 217, 100, 1); }
+}
+
+/* Старые стили для совместимости */
+.modern-stop-marker {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 2px solid #007aff;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+.modern-stop-marker:hover {
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
+}
+
+.modern-stop-marker:active {
+    transform: scale(1.05);
+}
+
+.modern-stop-marker.favorite-stop-on-map {
+    border-color: var(--favorite-color);
+    box-shadow: 0 0 12px var(--favorite-color);
+    animation: favorite-pulse 2s infinite;
+}
+
+.modern-stop-marker.live-origin-stop-marker {
+    border-color: var(--success-color);
+    background-color: rgba(76, 217, 100, 0.1);
+    animation: pulse-live 2s infinite;
+}
+
+@keyframes favorite-pulse {
+    0%, 100% { box-shadow: 0 0 12px var(--favorite-color); }
+    50% { box-shadow: 0 0 20px var(--favorite-color); }
+}
+
+/* Старые точки для совместимости */
 .stop-marker-dot { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid var(--primary-color); background-color: var(--bg-color); box-shadow: 0 0 8px hsla(var(--primary-hue), 90%, 60%, 0.3); transition: var(--transition-smooth); }
 .stop-marker-dot:active { transform: scale(1.2); }
 .stop-marker-dot.favorite-stop-on-map { border-color: var(--favorite-color); box-shadow: 0 0 10px var(--favorite-color); }
@@ -196,9 +324,70 @@ body.modal-open #header-controls #reset-route-button:hover { opacity: 1; }
 .bus-icon-wrapper { width: 36px; height: 36px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 2px solid var(--bg-color); animation: pulse-bus 2.5s infinite; position: relative; }
 .bus-icon-wrapper .fa-bus { font-size: 0.8em; position: absolute; top: 5px; }
 .bus-icon-wrapper .bus-route-number { position: absolute; bottom: 5px; font-size: 0.8em; font-weight: 600; }
-.bus-arrival-time { background: var(--panel-bg); color: var(--text-color); padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border: 1px solid var(--panel-border); }
+.bus-arrival-time { background: var(--panel-bg); color: var(--text-color); padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; }
+.bus-occupancy-minimal { 
+    font-size: 1em; 
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
 .simulated-bus-marker.bus-now .bus-icon-wrapper { background: var(--success-color); animation-name: none; }
 .simulated-bus-marker.bus-soon .bus-icon-wrapper { background: var(--warning-color); animation-duration: 1.5s; }
+
+/* Современные маркеры остановок */
+.route-stop-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stop-pin {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.stop-pin-head {
+    width: 20px;
+    height: 20px;
+    background: white;
+    border: 3px solid var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    z-index: 2;
+}
+
+.stop-pin-tail {
+    width: 2px;
+    height: 12px;
+    background: var(--primary-color);
+    margin-top: -2px;
+}
+
+.route-stop-marker.target-stop .stop-pin-head {
+    background: var(--primary-color);
+    border-color: white;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    box-shadow: 0 0 0 4px rgba(66, 133, 244, 0.3);
+    animation: pulse-target-stop 2s ease-in-out infinite;
+}
+
+.route-stop-marker.target-stop .stop-pin-tail {
+    height: 16px;
+    width: 3px;
+    background: var(--primary-color);
+}
+
+@keyframes pulse-target-stop {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(66, 133, 244, 0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(66, 133, 244, 0.1); }
+}
 
 /* 10. ОБЩИЕ СТИЛИ И АДАПТИВНОСТЬ */
 .leaflet-control-zoom { display: none !important; }
@@ -428,3 +617,453 @@ body.modal-open #header-controls #reset-route-button:hover { opacity: 1; }
     background: var(--panel-border);
 }
 
+
+/* =================================================================== */
+/*    ENHANCED SCHEDULE STYLES                                         */
+/* =================================================================== */
+
+.enhanced-schedule-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 8px 0;
+}
+
+.route-schedule-block {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: var(--transition-fast);
+}
+
+.route-schedule-block:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.route-schedule-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--panel-border);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.route-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    height: 48px;
+    padding: 0 12px;
+    background: var(--primary-color);
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.route-name {
+    flex: 1;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-secondary-color);
+}
+
+.arrivals-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.arrival-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition-fast);
+}
+
+.arrival-item:last-child {
+    border-bottom: none;
+}
+
+.arrival-item:hover {
+    background: var(--panel-border);
+}
+
+.arrival-item.next-arrival {
+    background: rgba(var(--primary-hue), var(--primary-saturation), var(--primary-lightness), 0.05);
+    border-left: 4px solid var(--primary-color);
+}
+
+.arrival-time-info {
+    display: flex;
+    align-items: center;
+}
+
+.arrival-time {
+    font-size: 24px;
+    font-weight: 700;
+    min-width: 80px;
+}
+
+.arrival-time.time-now {
+    color: var(--success-color);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.arrival-time.time-soon {
+    color: var(--warning-color);
+}
+
+.arrival-time.time-upcoming {
+    color: var(--primary-color);
+}
+
+.arrival-time.time-scheduled {
+    color: var(--text-secondary-color);
+    font-size: 18px;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.arrival-status {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.occupancy-indicator {
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    cursor: help;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.occupancy-indicator.occupancy-low {
+    background: #00a400;
+    color: white;
+}
+
+.occupancy-indicator.occupancy-medium {
+    background: #ffc700;
+    color: #000;
+}
+
+.occupancy-indicator.occupancy-high {
+    background: #fa383e;
+    color: white;
+}
+
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--success-color);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 12px var(--success-glow);
+}
+
+.live-indicator i {
+    font-size: 8px;
+    animation: blink-live 1.5s ease-in-out infinite;
+}
+
+@keyframes blink-live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.scheduled-indicator {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    background: var(--border-color);
+    color: var(--text-secondary-color);
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.delay-late {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    background: rgba(250, 56, 62, 0.1);
+    color: var(--error-color);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid rgba(250, 56, 62, 0.3);
+}
+
+.delay-early {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    background: rgba(0, 164, 0, 0.1);
+    color: var(--success-color);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 164, 0, 0.3);
+}
+
+.arrival-headsign {
+    font-size: 13px;
+    color: var(--text-secondary-color);
+    font-weight: 500;
+}
+
+.no-schedule-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    gap: 12px;
+}
+
+.no-schedule-message i {
+    font-size: 48px;
+    color: var(--text-secondary-color);
+    opacity: 0.5;
+}
+
+.no-schedule-message p {
+    font-size: 16px;
+    color: var(--text-secondary-color);
+    margin: 0;
+    font-style: italic;
+}
+
+/* Темная тема улучшения */
+.dark-mode .route-schedule-block {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .route-schedule-header {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .arrival-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .arrival-item.next-arrival {
+    background: rgba(var(--primary-hue), var(--primary-saturation), var(--primary-lightness), 0.1);
+}
+
+/* =================================================================== */
+/*    ORIGINAL SCHEDULE STYLES (Restored from initial version)         */
+/* =================================================================== */
+
+.route-item { 
+    display: flex; 
+    gap: 16px; 
+    padding: 16px 0; 
+    border-bottom: 1px solid var(--border-color); 
+    opacity: 0; 
+    animation: slide-in-item 0.5s cubic-bezier(0.2, 1, 0.3, 1) forwards; 
+}
+.route-item:last-child { border-bottom: none; }
+.route-item:nth-child(1) { animation-delay: 0.1s; }
+.route-item:nth-child(2) { animation-delay: 0.15s; }
+.route-item:nth-child(3) { animation-delay: 0.2s; }
+.route-item:nth-child(4) { animation-delay: 0.25s; }
+
+@keyframes slide-in-item {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.route-item-info { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 12px; 
+    flex-shrink: 0; 
+}
+
+.route-circle { 
+    width: 52px; 
+    height: 52px; 
+    border-radius: 16px; 
+    background: var(--primary-color); 
+    color: white; 
+    font-weight: 700; 
+    font-size: 1.6em; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    transition: var(--transition-fast); 
+}
+.route-circle:active { 
+    transform: scale(0.95); 
+    filter: brightness(0.9); 
+}
+
+.route-item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 5px;
+    min-height: 60px;
+    justify-content: center;
+    align-items: center;
+}
+
+.route-item-actions .control-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(128, 128, 128, 0.1);
+    border: 1px solid transparent;
+    color: var(--text-secondary-color);
+    transition: var(--transition-fast);
+}
+
+.route-item-actions .control-button:hover {
+    background: rgba(128, 128, 128, 0.2);
+}
+
+.route-item-actions .control-button:active {
+    transform: scale(0.95);
+}
+
+.route-item-details { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+    flex-grow: 1; 
+    min-width: 0; 
+}
+
+.route-name-schedule { 
+    font-size: 1.1em; 
+    font-weight: 600; 
+    line-height: 1.3; 
+}
+
+.bus-features {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.bus-feature-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: rgba(128, 128, 128, 0.1);
+    border-radius: 8px;
+    color: var(--text-secondary-color);
+    font-size: 13px;
+}
+
+.route-schedule-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); 
+    gap: 8px; 
+}
+
+.arrival-time-item { 
+    background: rgba(128, 128, 128, 0.1); 
+    border: 1px solid transparent; 
+    border-radius: 10px; 
+    color: var(--text-secondary-color); 
+    font-weight: 500; 
+    padding: 8px 4px; 
+    text-align: center; 
+    font-size: 0.9em; 
+    transition: var(--transition-smooth); 
+    position: relative;
+}
+
+.arrival-time-item.time-live { 
+    color: var(--primary-color); 
+    background: hsla(var(--primary-hue), 90%, 60%, 0.12); 
+    font-weight: 600;
+    font-style: italic;
+    position: relative;
+}
+
+.arrival-time-item.now { 
+    background: var(--success-color); 
+    color: white; 
+    font-weight: 700; 
+}
+
+.arrival-time-item.critical-soon { 
+    color: var(--warning-color); 
+    font-weight: 600; 
+}
+
+.arrival-time-item.soon {
+    color: var(--warning-color);
+    font-weight: 600;
+}
+
+.arrival-time-item.approaching {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.arrival-time-item.primary-arrival {
+    grid-column: span 2;
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+.arrival-time-item .live-indicator {
+    display: none;
+}
+
+.no-schedule {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-secondary-color);
+    font-size: 14px;
+}
+
+.error-message {
+    color: var(--error-color);
+}

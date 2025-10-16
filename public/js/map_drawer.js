@@ -46,14 +46,22 @@ function createStopMarker(stop, isLiveOrigin = false) {
     const favoriteClass = isFav ? 'favorite-stop-on-map' : '';
     const liveOriginClass = isLiveOrigin ? 'live-origin-stop-marker' : '';
 
-    const markerHTML = `<div class="stop-marker-dot ${favoriteClass} ${liveOriginClass}" data-stop-id="${stop.stop_id}"></div>`;
+    // Яркий заметный пин в стиле Moovit/Momego
+    const markerHTML = `
+        <div class="momego-stop-pin ${favoriteClass} ${liveOriginClass}" data-stop-id="${stop.stop_id}">
+            <div class="pin-head">
+                <div class="pin-icon">${isFav ? '★' : ''}</div>
+            </div>
+            <div class="pin-shadow"></div>
+        </div>
+    `;
 
     const marker = L.marker([stop.stop_lat, stop.stop_lon], {
         icon: L.divIcon({
             html: markerHTML,
             className: 'stop-marker-wrapper',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+            iconSize: [40, 50],
+            iconAnchor: [20, 45]
         }),
         interactive: !isLiveOrigin,
         zIndexOffset: isLiveOrigin ? 1000 : (isFav ? 10 : 0)
@@ -97,7 +105,61 @@ function clearPreviousRouteDrawing() {
     liveViewSpecificShapeId = null;
 }
 
-function showRouteAndBuses(routeId) {
+// Показывает остановки маршрута из API когда нет локальных GTFS данных
+async function showRouteStopsFromAPI(routeId) {
+    showLoadingOverlay('Loading route stops from API...');
+    
+    try {
+        const stops = await loadRouteStopsFromAPI(routeId);
+        
+        if (!stops || stops.length === 0) {
+            console.warn(`No stops found for route ${routeId}`);
+            alert(`Route ${routeId}: No data available.\n\n` +
+                  `This route may be temporarily unavailable or requires updated GTFS data.\n\n` +
+                  `Check console for details.`);
+            hideLoadingOverlay();
+            return;
+        }
+        
+        // Отображаем остановки на карте
+        routeStopMarkersLayerGroup.clearLayers();
+        const elementsToFit = [];
+        
+        stops.forEach(apiStop => {
+            const stopData = {
+                stop_id: String(apiStop.key),
+                stop_name: apiStop.name,
+                stop_lat: apiStop.centre?.geographic?.latitude,
+                stop_lon: apiStop.centre?.geographic?.longitude
+            };
+            
+            if (stopData.stop_lat && stopData.stop_lon) {
+                // Добавляем в stopDetails если еще нет
+                if (!gtfsData.stopDetails[stopData.stop_id]) {
+                    gtfsData.stopDetails[stopData.stop_id] = stopData;
+                }
+                
+                const marker = createStopMarker(stopData);
+                routeStopMarkersLayerGroup.addLayer(marker);
+                elementsToFit.push(marker);
+            }
+        });
+        
+        if (elementsToFit.length > 0) {
+            map.fitBounds(L.featureGroup(elementsToFit).getBounds().pad(0.1), {maxZoom: 16});
+        }
+        
+        console.log(`✅ Displayed ${stops.length} stops for route ${routeId} from API`);
+        
+    } catch (err) {
+        console.error(`Error showing route ${routeId} stops:`, err);
+        alert(`Failed to load route ${routeId} data from API.`);
+    } finally {
+        hideLoadingOverlay();
+    }
+}
+
+async function showRouteAndBuses(routeId) {
     clearPreviousRouteDrawing();
     if (isLiveBusViewActive) { 
         deactivateLiveBusView(false); 
@@ -105,11 +167,29 @@ function showRouteAndBuses(routeId) {
     if (radiusCircle) radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
     if (centerMarker) centerMarker.setOpacity(0);
 
+    // Сначала загружаем trips и shapes для этого маршрута
+    showLoadingOverlay('Loading route data...');
+    const loaded = await loadRouteTripsAndShapes(routeId);
+    hideLoadingOverlay();
+
     if (!gtfsData.routes?.length || !gtfsData.routeToTrips || !gtfsData.tripToShape || !gtfsData.shapes || !gtfsData.tripToStops || !gtfsData.stopDetails) {
-        console.error("showRouteAndBuses: GTFS data not fully loaded."); return;
+        console.error("showRouteAndBuses: GTFS data not fully loaded."); 
+        updateResetRouteButtonVisibility();
+        return;
     }
+    
     const tripIdsForRoute = gtfsData.routeToTrips[routeId];
-    if (!tripIdsForRoute || tripIdsForRoute.length === 0) { console.warn(`No trips for route: ${routeId}`); updateResetRouteButtonVisibility(); return; }
+    
+    // Если нет trips в локальных GTFS, загружаем остановки из API
+    if (!tripIdsForRoute || tripIdsForRoute.length === 0) { 
+        console.warn(`⚠️ Route ${routeId} not found in local GTFS files.`);
+        console.log(`📡 Loading stops from Winnipeg Transit API...`);
+        console.log(`ℹ️  Note: Route lines and bus simulation unavailable for this route.`);
+        console.log(`ℹ️  To enable full functionality, update GTFS files (see UPDATE_GTFS.md)`);
+        await showRouteStopsFromAPI(routeId);
+        updateResetRouteButtonVisibility();
+        return;
+    }
 
     // ==========================================================
     //     ↓↓↓ ИСПРАВЛЕНИЕ: Собираем все уникальные линии (shapes) ↓↓↓

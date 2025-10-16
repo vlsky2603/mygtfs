@@ -30,8 +30,6 @@ let routePlannerStartMarker = null;
 let routePlannerEndMarker = null;
 let startAddressResults = [];
 let endAddressResults = [];
-let startAddressResults = [];
-let endAddressResults = [];
 let debounceTimeout;
 let currentStopForSchedulePanel = null; 
 let liveViewOriginStopMarker = null; 
@@ -67,18 +65,16 @@ const LIVE_VIEW_ZOOM_PADDING = 0.25;
 const FIXED_RADIUS = 400;
 const SCHEDULE_COUNTDOWN_INTERVAL = 1000;
 const SCHEDULE_API_REFRESH_INTERVAL = 2 * 60 * 1000; 
-const BUS_TARGET_UPDATE_INTERVAL = 10000;
+const BUS_TARGET_UPDATE_INTERVAL = 1000; // Обновление каждую секунду для очень плавного движения
 const NOTIFICATION_CHECK_INTERVAL = 5000;
 const DEFAULT_NOTIFICATION_MINUTES_BEFORE = 2;
 const RULE_MONITOR_INTERVAL = 1 * 60 * 1000; 
 const FETCH_PREVIOUS_STOP_FOR_CLOSEST_BUS = true; 
 const MAX_UNDETERMINED_FUTURE_ARRIVAL_MINUTES = 25; 
-const NUMBER_OF_BUSES_TO_SHOW = 2;
-const WALK_SPEED_MPS = 1.4;
+// (constants defined above)
 const MAX_ROUTE_EXPANSIONS = 1000;
 const NUMBER_OF_BUSES_TO_SHOW = 2;
 const WALK_SPEED_MPS = 1.4;
-const MAX_ROUTE_EXPANSIONS = 1000;
 
 // --- Инициализация ---
 
@@ -107,7 +103,7 @@ function initMap() {
     simulatedBusesLayerGroup = L.layerGroup().addTo(map);
 
     initUI();
-    requestInitialLocationAndSetView(); 
+    requestInitialLocationAndSetView(); // Эта функция теперь сама установит стартовый адрес 
 
     map.on('move', () => {
         if (centerMarker) centerMarker.setLatLng(map.getCenter());
@@ -115,7 +111,13 @@ function initMap() {
     });
     map.on('moveend', () => {
          clearTimeout(debounceTimeout);
-        debounceTimeout = setTimeout(() => { if (allLocalStops.length > 0 && !filters.route && !isLiveBusViewActive) refreshMarkers(map.getCenter()); }, 250);
+        debounceTimeout = setTimeout(() => { 
+            if (allLocalStops.length > 0 && !filters.route && !isLiveBusViewActive) {
+                refreshMarkers(map.getCenter());
+                // Подгружаем остановки для новой области если нужно
+                loadStopsForCurrentView();
+            }
+        }, 250);
         const circlePath = radiusCircle.getElement();
         if (circlePath) { circlePath.classList.remove('radius-circle-path-settle'); void circlePath.offsetWidth; circlePath.classList.add('radius-circle-path-settle'); }
     });
@@ -144,7 +146,6 @@ function initUI() {
     document.getElementById('close-route-planner')?.addEventListener('click', () => closeRoutePlannerPanel());
     document.getElementById('build-route-button')?.addEventListener('click', buildRouteFromAddresses);
     setupAddressAutocomplete();
-    setupAddressAutocomplete();
     
     document.getElementById('direction-filter')?.addEventListener('change', e => { filters.direction = e.target.value || null; if (filters.route && !isLiveBusViewActive) showRouteAndBuses(filters.route); else if (!isLiveBusViewActive) refreshMarkers(map.getCenter()); });
     document.getElementById('street-search')?.addEventListener('input', updateStreetSearch);
@@ -170,6 +171,56 @@ function initUI() {
 
 // --- Главные обработчики событий и координаторы ---
 
+// Подгружает остановки для текущей области карты если они еще не загружены
+async function loadStopsForCurrentView() {
+    const center = map.getCenter();
+    const radius = 1000; // 1 км радиус
+    
+    // Проверяем загружена ли эта область
+    if (SmartCache.isAreaLoaded(center.lat, center.lng, radius)) {
+        console.log('Area already loaded from cache');
+        return;
+    }
+    
+    console.log(`Loading stops for area: lat=${center.lat}, lon=${center.lng}, radius=${radius}m`);
+    
+    try {
+        const response = await fetch(`/api/stops?lat=${center.lat}&lon=${center.lng}&distance=${radius}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        if (data.stops && data.stops.length > 0) {
+            // Конвертируем в формат GTFS и добавляем в кэш
+            const gtfsStops = data.stops.map(stop => ({
+                stop_id: stop.key.toString(),
+                stop_name: stop.name,
+                stop_lat: stop.centre.geographic.latitude.toString(),
+                stop_lon: stop.centre.geographic.longitude.toString()
+            }));
+            
+            SmartCache.addStops(gtfsStops);
+            
+            // Обновляем глобальный массив остановок
+            const existingIds = new Set(allLocalStops.map(s => s.stop_id));
+            gtfsStops.forEach(stop => {
+                if (!existingIds.has(stop.stop_id)) {
+                    allLocalStops.push(stop);
+                }
+            });
+            
+            // Отмечаем область как загруженную
+            SmartCache.markAreaLoaded(center.lat, center.lng, radius);
+            
+            // Обновляем маркеры на карте
+            refreshMarkers(center);
+            
+            console.log(`Added ${gtfsStops.length} new stops to cache`);
+        }
+    } catch (error) {
+        console.error('Failed to load stops for area:', error);
+    }
+}
+
 async function requestInitialLocationAndSetView() { 
     showLoadingOverlay('Initializing...');
 
@@ -177,7 +228,9 @@ async function requestInitialLocationAndSetView() {
         map.setView(center, zoom);
         if (centerMarker) centerMarker.setLatLng(center);
         if (radiusCircle) radiusCircle.setLatLng(center);
-        loadAndProcessGTFS(); 
+        
+        // Используем API вместо локальных GTFS файлов
+        loadAndProcessFromAPI(); 
     }
 
     if (navigator.geolocation) {
@@ -187,16 +240,25 @@ async function requestInitialLocationAndSetView() {
                 if (!userLocationMarker) userLocationMarker = L.marker(userCenter, { icon: userLocationIcon, zIndexOffset: 1000, interactive: false }).addTo(map);
                 else userLocationMarker.setLatLng(userCenter);
                 setViewAndLoadData(userCenter, INITIAL_USER_ZOOM);
+                
+                // Устанавливаем местоположение пользователя как стартовый адрес
+                updateStartAddressWithLocation(userCenter, 'Your Location');
             },
             () => { 
                 showLoadingOverlay('Location denied. Loading default area...'); 
                 setViewAndLoadData(DEFAULT_WINNIPEG_CENTER, DEFAULT_ZOOM_UNCLUSTERED); 
+                
+                // Устанавливаем центр Виннипега как стартовый адрес (запасной вариант)
+                updateStartAddressWithLocation(DEFAULT_WINNIPEG_CENTER, 'Winnipeg (center)');
             },
             { timeout: 8000, maximumAge: 60000, enableHighAccuracy: true }
         );
     } else { 
         showLoadingOverlay('Geolocation not supported. Loading default area...'); 
         setViewAndLoadData(DEFAULT_WINNIPEG_CENTER, DEFAULT_ZOOM_UNCLUSTERED); 
+        
+        // Устанавливаем центр Виннипега как стартовый адрес (запасной вариант)
+        updateStartAddressWithLocation(DEFAULT_WINNIPEG_CENTER, 'Winnipeg (center)');
     }
 }
 
@@ -291,7 +353,6 @@ function getCoordsFromInput(value, type) {
     if (match) return { lat: match.lat, lon: match.lon };
     return null;
 }
-
 function setupAddressAutocomplete() {
     const startInput = document.getElementById('route-start-address');
     const endInput = document.getElementById('route-end-address');
@@ -319,6 +380,23 @@ function setupAddressAutocomplete() {
             });
         }
     });
+}
+
+function setDefaultStartAddress() {
+    // Эта функция будет вызвана после определения местоположения
+    // Она установит стартовый адрес в Route Planner
+}
+
+function updateStartAddressWithLocation(coords, displayName) {
+    try {
+        const startInput = document.getElementById('route-start-address');
+        if (startInput && !startInput.value) {
+            startInput.value = displayName;
+            startAddressResults = [{ display: displayName, lat: coords[0], lon: coords[1] }];
+        }
+    } catch (e) {
+        // defensive: ignore if DOM not ready
+    }
 }
 function getCoordsFromInput(value, type) {
     const list = type === 'start' ? startAddressResults : endAddressResults;
@@ -359,7 +437,6 @@ async function buildRouteFromAddresses() {
     const startAddr = document.getElementById('route-start-address')?.value.trim();
     const endAddr = document.getElementById('route-end-address')?.value.trim();
     const resultEl = document.getElementById('route-plan-result');
-    const spinner = document.getElementById('route-plan-spinner');
     const spinner = document.getElementById('route-plan-spinner');
     if (!startAddr || !endAddr || !resultEl) return;
     resultEl.textContent = 'Searching...';
@@ -599,6 +676,12 @@ function updateLiveActivity(scheduleData) {
 function clearAllMapLayersForLiveView(fullClear = true, originStopToPreserve = null) {
     if (currentRoutePolyline) { map.removeLayer(currentRoutePolyline); currentRoutePolyline = null; }
     
+    // Удаляем маркеры остановок на маршруте
+    if (window.routeStopMarkers && window.routeStopMarkers.length > 0) {
+        window.routeStopMarkers.forEach(marker => map.removeLayer(marker));
+        window.routeStopMarkers = [];
+    }
+    
     Object.values(activeSimulatedBuses).forEach(busInfo => {
         if (busInfo.animatedPath) map.removeLayer(busInfo.animatedPath);
     });
@@ -703,6 +786,117 @@ async function refreshScheduleApiData() {
     }
 }
 
+// Fallback для старого формата отображения (на случай ошибок)
+function renderLegacyAPISchedule(container, routeSchedules, currentTime) {
+    console.log('Using legacy API schedule rendering');
+    
+    const routesToDisplay = routeSchedules.map(rs => {
+        let earliestTimestamp = Infinity;
+        (rs['scheduled-stops'] || []).forEach(sS => {
+            if (sS.cancelled === "true") return;
+            const arrivalInfo = formatArrivalTime(sS.times?.departure, currentTime);
+            if (arrivalInfo.timestamp < earliestTimestamp) earliestTimestamp = arrivalInfo.timestamp;
+        });
+        return { ...rs, earliestTimestamp };
+    }).sort((a, b) => a.earliestTimestamp - b.earliestTimestamp);
+    
+    routesToDisplay.forEach(rs => {
+        const routeAPIData = rs.route;
+        const scheduledStops = rs['scheduled-stops'] || [];
+        
+        const allArrivals = [];
+        scheduledStops.forEach(sS => {
+            if (sS.cancelled === "true") return;
+            const fmt = formatArrivalTime(sS.times?.departure, currentTime);
+            if (fmt.text) {
+                allArrivals.push({ ...fmt, sStop: sS });
+            }
+        });
+        
+        if (allArrivals.length === 0) return;
+        
+        const routeDiv = document.createElement('div');
+        routeDiv.className = 'route-item';
+        routeDiv.innerHTML = `
+            <div class="route-item-info">
+                <span class="route-circle">${routeAPIData.number}</span>
+                <span class="route-name-schedule">${routeAPIData.name || `Route ${routeAPIData.number}`}</span>
+            </div>
+            <div class="route-schedule-grid">
+                ${allArrivals.slice(0, 3).map((arr, idx) => `
+                    <div class="arrival-time-item ${arr.css} ${idx === 0 ? 'primary-arrival' : ''}"
+                         data-scheduled-time="${arr.sStop.times?.departure?.scheduled || ''}"
+                         data-estimated-time="${arr.sStop.times?.departure?.estimated || ''}"
+                         data-original-timestamp="${arr.timestamp}">
+                        ${arr.text}
+                        ${arr.css.includes('live') ? '<span class="live-indicator"></span>' : ''}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        container.appendChild(routeDiv);
+    });
+}
+
+// ==========================================================
+//     GTFS Fallback для расписания
+// ==========================================================
+function getGTFSScheduleForStop(stopId, referenceTimeUTC) {
+    const schedule = [];
+    const endTimeUTC = new Date(referenceTimeUTC.getTime() + 4 * 60 * 60 * 1000);
+    
+    // Находим все stop_times для данной остановки
+    const stopTimesForStop = gtfsData.stopTimes.filter(st => String(st.stop_id) === String(stopId));
+    
+    const routeSchedules = {};
+    
+    stopTimesForStop.forEach(st => {
+        const trip = gtfsData.trips.find(t => t.trip_id === st.trip_id);
+        if (!trip) return;
+        
+        const route = gtfsData.routes.find(r => r.route_id === trip.route_id);
+        if (!route) return;
+        
+        // Конвертируем GTFS время в datetime
+        const gtfsSeconds = gtfsTimeToSeconds(st.departure_time);
+        if (gtfsSeconds === null) return;
+        
+        const departureTime = getDatetimeForGtfsTime(gtfsSeconds, referenceTimeUTC);
+        if (!departureTime) return;
+        
+        // Фильтруем по времени
+        if (departureTime < referenceTimeUTC || departureTime > endTimeUTC) return;
+        
+        const routeKey = route.route_short_name || route.route_id;
+        
+        if (!routeSchedules[routeKey]) {
+            routeSchedules[routeKey] = {
+                routeNumber: route.route_short_name || route.route_id,
+                routeName: trip.trip_headsign || route.route_long_name || `Route ${routeKey}`,
+                times: []
+            };
+        }
+        
+        const timeStr = departureTime.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'America/Winnipeg'
+        });
+        
+        routeSchedules[routeKey].times.push(timeStr);
+    });
+    
+    // Преобразуем в массив и сортируем времена
+    Object.values(routeSchedules).forEach(rs => {
+        rs.times.sort();
+        rs.times = rs.times.slice(0, 10); // Максимум 10 времен
+        schedule.push(rs);
+    });
+    
+    return schedule;
+}
+
 // ==========================================================
 //     ↓↓↓ ПОЛНАЯ И ИСПРАВЛЕННАЯ ВЕРСИЯ showSchedulePanel ↓↓↓
 // ==========================================================
@@ -771,7 +965,11 @@ async function showSchedulePanel(stop) {
         const scheduleStartTimeUTC = new Date(currentSimTimeUTC.getTime());
         const scheduleEndTimeUTC = new Date(currentSimTimeUTC.getTime() + 4 * 60 * 60 * 1000); 
 
-        const fetchUrl = `${API_BASE}/api/stops/${stop.stop_id}/schedule?usage=long&start=${scheduleStartTimeUTC.toISOString()}&end=${scheduleEndTimeUTC.toISOString()}`;
+        // Используем Unix timestamp (целые числа) вместо ISO строк, чтобы обойти WAF
+        const startTimestamp = scheduleStartTimeUTC.getTime();
+        const endTimestamp = scheduleEndTimeUTC.getTime();
+        
+        const fetchUrl = `${API_BASE}/api/stops/${stop.stop_id}/schedule?usage=long&start=${startTimestamp}&end=${endTimestamp}`;
         
         const scheduleRes = await fetch(fetchUrl);
 
@@ -803,6 +1001,7 @@ async function showSchedulePanel(stop) {
         if (scheduleItemsContainer) scheduleItemsContainer.innerHTML = '';
 
         if (_currentPanelApiRouteSchedules.length > 0) {
+            // Используем старый проверенный UI с улучшениями
             let routeSchedulesToDisplay = _currentPanelApiRouteSchedules.map(rs => {
                 let earliestTimestamp = Infinity;
                 (rs['scheduled-stops'] || []).forEach(sS => {
@@ -813,9 +1012,6 @@ async function showSchedulePanel(stop) {
                 return {...rs, earliestTimestamp};
             }).sort((a,b) => a.earliestTimestamp - b.earliestTimestamp);
 
-            // ==========================================================
-            //     ↓↓↓ ВОТ ЭТОТ БЛОК ОТСУТСТВОВАЛ ↓↓↓
-            // ==========================================================
             routeSchedulesToDisplay.forEach(routeSchedule => {
                 const routeAPIData = routeSchedule.route;
                 const scheduledStopsForRoute = routeSchedule['scheduled-stops'] || [];
@@ -848,6 +1044,7 @@ async function showSchedulePanel(stop) {
                     routeCircleSpan.dataset.routeId = routeIdForLink;
                     routeCircleSpan.textContent = routeAPIData.number || 'N/A';
                     routeCircleSpan.title = `View full route ${routeAPIData.number}`;
+                    routeCircleSpan.style.cursor = 'pointer';
                     routeCircleSpan.addEventListener('click', () => { 
                         if (routeIdForLink) { 
                             if (currentStopForSchedulePanel) { 
@@ -907,9 +1104,17 @@ async function showSchedulePanel(stop) {
                         if (radiusCircle) radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 });
                         if (centerMarker) centerMarker.setOpacity(0);
 
-
                         closeSchedulePanel(); 
                         if (liveViewOriginStopData) {
+                            // Загружаем trips для маршрута перед симуляцией
+                            const routeNumber = specificRouteScheduleForButton?.route?.number;
+                            if (routeNumber) {
+                                const gtfsRoute = gtfsData.routes.find(r => String(r.route_short_name) === String(routeNumber));
+                                if (gtfsRoute) {
+                                    await loadRouteTripsAndShapes(gtfsRoute.route_id);
+                                }
+                            }
+                            
                             await simulateAndShowUpcomingBusesForRoute(liveViewOriginStopData, specificRouteScheduleForButton, simTimeForLiveViewUTC.toISOString(), true);
                         } 
                         updateResetRouteButtonVisibility(); 
@@ -990,14 +1195,13 @@ async function showSchedulePanel(stop) {
                     scheduleItemsContainer.appendChild(routeItemDiv);
                 }
             });
-            // ==========================================================
-            //     ↑↑↑ КОНЕЦ БЛОКА, КОТОРЫЙ ОТСУТСТВОВАЛ ↑↑↑
-            // ==========================================================
             
-            if (scheduleItemsContainer.children.length === 0 && scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule">${getRandomNoScheduleMessage()} <small>(No displayable services)</small></div>`;
+            if (scheduleItemsContainer.children.length === 0 && scheduleItemsContainer) {
+                scheduleItemsContainer.innerHTML = `<div class="no-schedule">${getRandomNoScheduleMessage()} <small>(No displayable services)</small></div>`;
+            }
             
             scheduleCountdownIntervalId = setInterval(updateScheduleCountdown, SCHEDULE_COUNTDOWN_INTERVAL);
-                        scheduleApiRefreshIntervalId = setInterval(refreshScheduleApiData, SCHEDULE_API_REFRESH_INTERVAL);
+            scheduleApiRefreshIntervalId = setInterval(refreshScheduleApiData, SCHEDULE_API_REFRESH_INTERVAL);
         } else {
             if (scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule">${getRandomNoScheduleMessage()}${scheduleJson?.message ? ' <small>(' + scheduleJson.message + ')</small>' : ''}</div>`;
             if (simulatedBusesLayerGroup) simulatedBusesLayerGroup.clearLayers(); activeSimulatedBuses = {};
@@ -1005,8 +1209,41 @@ async function showSchedulePanel(stop) {
         panel.style.maxHeight = '';
     } catch (e) {
         updateLiveActivity(null);
-        console.error(`Error in showSchedulePanel for stop ${stop.stop_id}:`, e);
-        if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule error-message">Oops! Couldn't fetch schedule. <small>(${e.message})</small></div>`;
+        console.warn(`API schedule unavailable for stop ${stop.stop_id}, falling back to GTFS:`, e.message);
+        
+        // Fallback на GTFS расписание
+        try {
+            const gtfsSchedule = getGTFSScheduleForStop(stop.stop_id, currentSimTimeUTC);
+            
+            if (gtfsSchedule && gtfsSchedule.length > 0 && scheduleItemsContainer) {
+                scheduleItemsContainer.innerHTML = '<div style="padding: 8px; background: rgba(255, 193, 7, 0.1); border-radius: 8px; margin-bottom: 8px; font-size: 0.85em; color: var(--warning-color);"><i class="fas fa-info-circle"></i> Showing GTFS schedule (API unavailable)</div>';
+                
+                gtfsSchedule.forEach(item => {
+                    const routeItemDiv = document.createElement('div');
+                    routeItemDiv.className = 'route-item';
+                    routeItemDiv.innerHTML = `
+                        <div class="route-item-info">
+                            <span class="route-circle" style="cursor: default;">${item.routeNumber}</span>
+                        </div>
+                        <div class="route-item-details">
+                            <span class="route-name-schedule">${item.routeName}</span>
+                            <div class="route-schedule-grid">
+                                ${item.times.map(time => `<div class="arrival-time-item gtfs-scheduled">${time}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                    scheduleItemsContainer.appendChild(routeItemDiv);
+                });
+                
+                scheduleCountdownIntervalId = setInterval(updateScheduleCountdown, SCHEDULE_COUNTDOWN_INTERVAL);
+            } else {
+                if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule error-message">Schedule unavailable. <small>(API error & no GTFS data)</small></div>`;
+            }
+        } catch (gtfsError) {
+            console.error('GTFS fallback also failed:', gtfsError);
+            if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule error-message">Oops! Couldn't fetch schedule. <small>(${e.message})</small></div>`;
+        }
+        
         panel.style.maxHeight = ''; 
         _currentPanelApiRouteSchedules = [];
     } finally {

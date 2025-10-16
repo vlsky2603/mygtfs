@@ -1,2 +1,2 @@
 feed_publisher_name,feed_publisher_url,feed_lang,feed_contact_email,feed_start_date,feed_end_date
-Winnipeg Transit,http://www.winnipegtransit.com,en,311@winnipeg.ca,20231217,20240413
+Winnipeg Transit,https://winnipegtransit.com,en,311@winnipeg.ca,20250831,20251213
