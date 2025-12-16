@@ -54,22 +54,36 @@ function editFavoriteName(stopId) {
 }
 
 function renderFavoritesPanel() {
-    const container = document.querySelector('#favorites-panel .favorites-list-container');
+    const container = document.getElementById('favorites-list-container');
     if (!container) return;
-    container.innerHTML = favorites.length === 0 ? '<p class="no-favorites">No favorite stops yet.</p>' : '';
+    
+    container.innerHTML = '';
+    
+    if (favorites.length === 0) {
+        container.innerHTML = '<p class="no-favorites" style="grid-column: 1/-1; text-align:center; color:var(--text-secondary);">No favorites yet</p>';
+        return;
+    }
+    
     favorites.forEach(fav => {
-        const item = document.createElement('div'); item.className = 'favorite-item'; item.dataset.stopId = fav.stop_id;
-        item.innerHTML = `<div class="favorite-item-info" title="Show schedule for ${fav.custom_name}"><span class="favorite-name">${fav.custom_name}</span><span class="favorite-original-name">${fav.original_name} (#${fav.stop_id})</span></div><div class="favorite-item-actions"><button class="action-edit-name" title="Edit Name"><i class="fas fa-edit"></i></button><button class="action-remove-favorite" title="Remove Favorite"><i class="fas fa-trash"></i></button></div>`;
-        item.querySelector('.favorite-item-info').addEventListener('click', () => {
-            if (map && !isNaN(fav.lat) && !isNaN(fav.lon)) map.setView([fav.lat, fav.lon], FAVORITE_STOP_ZOOM, { animate: true });
-            setTimeout(() => {
-                const stopDetail = allLocalStops.find(s => String(s.stop_id) === String(fav.stop_id)) || { stop_id: fav.stop_id, stop_name: fav.original_name, stop_lat: fav.lat, stop_lon: fav.lon };
-                showSchedulePanel(stopDetail);
-            }, 0);
-            closeFavoritesPanel();
+        const item = document.createElement('div');
+        item.className = 'favorite-item';
+        item.innerHTML = `
+            <div class="fav-icon-circle"><i class="fas fa-bus"></i></div>
+            <div class="fav-label">${fav.custom_name}</div>
+        `;
+        
+        item.addEventListener('click', () => {
+            if (map && !isNaN(fav.lat) && !isNaN(fav.lon)) {
+                map.setView([fav.lat, fav.lon], FAVORITE_STOP_ZOOM, { animate: true });
+            }
+            
+            const stopDetail = allLocalStops.find(s => String(s.stop_id) === String(fav.stop_id)) || { stop_id: fav.stop_id, stop_name: fav.original_name, stop_lat: fav.lat, stop_lon: fav.lon };
+            
+            if (window.showStopDetails) {
+                window.showStopDetails(stopDetail);
+            }
         });
-        item.querySelector('.action-edit-name').addEventListener('click', (e) => { e.stopPropagation(); editFavoriteName(fav.stop_id); });
-        item.querySelector('.action-remove-favorite').addEventListener('click', (e) => { e.stopPropagation(); if (confirm(`Remove "${fav.custom_name}"?`)) removeFavorite(fav.stop_id); });
+        
         container.appendChild(item);
     });
 }

@@ -14,13 +14,16 @@ async function getEnhancedSchedule(stopId, currentTimeUTC, hoursAhead = 4) {
     const scheduleEndTime = new Date(currentTimeUTC.getTime() + hoursAhead * 60 * 60 * 1000);
     
     // Параллельно загружаем GTFS и API данные
-    const [gtfsSchedule, apiSchedule] = await Promise.all([
+        const [gtfsSchedule, apiSchedule] = await Promise.all([
         getGTFSScheduleForStop(stopId, scheduleStartTime, scheduleEndTime),
         getAPIScheduleForStop(stopId, scheduleStartTime, scheduleEndTime)
     ]);
     
     // Объединяем данные
-    return mergeSchedules(gtfsSchedule, apiSchedule, currentTimeUTC);
+        // Пометим источники и объединим данные
+        const gtfsMarked = gtfsSchedule.map(s => Object.assign({}, s, { type: 'gtfs' }));
+        const apiMarked = apiSchedule.map(s => Object.assign({}, s, { type: 'api' }));
+        return mergeSchedules(gtfsMarked, apiMarked, currentTimeUTC);
 }
 
 /**
@@ -86,11 +89,12 @@ async function getAPIScheduleForStop(stopId, startTime, endTime) {
         
         if (!response.ok) {
             console.warn(`API schedule fetch failed: ${response.status}`);
+            if (typeof showToast === 'function') showToast(`Failed to fetch live schedule (API ${response.status}). Falling back to GTFS.`, 'error', 4000);
             return [];
         }
         
         const data = await response.json();
-        const routeSchedules = data?.data?.['stop-schedule']?.['route-schedules'] || [];
+        const routeSchedules = extractRouteSchedules(data);
         
         const results = [];
         
@@ -101,7 +105,7 @@ async function getAPIScheduleForStop(stopId, startTime, endTime) {
             scheduledStops.forEach(sStop => {
                 if (sStop.cancelled === "true") return;
                 
-                const times = sStop.times?.departure;
+                const times = sStop.times?.departure || sStop.times?.arrival;
                 if (!times) return;
                 
                 const scheduledTime = times.scheduled ? new Date(times.scheduled) : null;
@@ -201,203 +205,160 @@ function gtfsTimeToDate(gtfsTime, baseDate) {
  */
 function renderEnhancedSchedule(scheduleItems, currentTime) {
     const container = document.createElement('div');
-    container.className = 'enhanced-schedule-container';
-    
+    container.className = 'schedule-route-list';
+
     if (scheduleItems.length === 0) {
         container.innerHTML = `
-            <div class="no-schedule-message">
-                <i class="fas fa-info-circle"></i>
-                <p>${getRandomNoScheduleMessage()}</p>
+            <div class="schedule-empty-state">
+                <p>No upcoming buses for this stop.</p>
+                <span>Service may be temporarily unavailable or there are no scheduled trips for today.</span>
+                <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
+                    <button class="btn ghost" id="retry-schedule-btn">Retry</button>
+                    <button class="btn" id="report-issue-btn">Report</button>
+                </div>
             </div>
         `;
+        // Attach click handlers
+        setTimeout(() => {
+            const retryBtn = document.getElementById('retry-schedule-btn');
+            if (retryBtn) retryBtn.addEventListener('click', () => { if (window.loadScheduleContentForStop && window.currentStopForSchedulePanel) window.loadScheduleContentForStop(window.currentStopForSchedulePanel, { showSkeleton: true }); });
+            const reportBtn = document.getElementById('report-issue-btn');
+            if (reportBtn) reportBtn.addEventListener('click', () => { if (typeof showToast === 'function') showToast('Please include the stop number when reporting. Thanks!', 'info', 5000); });
+        }, 50);
         return container;
     }
-    
-    // Группируем по маршрутам
-    const groupedByRoute = {};
-    scheduleItems.forEach(item => {
-        if (!groupedByRoute[item.routeNumber]) {
-            groupedByRoute[item.routeNumber] = {
-                routeNumber: item.routeNumber,
-                routeName: item.routeName,
-                routeColor: item.routeColor,
-                arrivals: []
-            };
-        }
-        groupedByRoute[item.routeNumber].arrivals.push(item);
+
+    const grouped = groupScheduleByRoute(scheduleItems);
+    grouped.forEach(routeGroup => {
+        const routeItem = buildRouteScheduleCard(routeGroup, currentTime);
+        container.appendChild(routeItem);
     });
-    
-    // Сортируем маршруты по ближайшему прибытию
-    const routes = Object.values(groupedByRoute).sort((a, b) => {
-        const timeA = a.arrivals[0].estimatedTime || a.arrivals[0].scheduledTime;
-        const timeB = b.arrivals[0].estimatedTime || b.arrivals[0].scheduledTime;
-        return timeA - timeB;
-    });
-    
-    routes.forEach(route => {
-        const routeBlock = createRouteScheduleBlock(route, currentTime);
-        container.appendChild(routeBlock);
-    });
-    
+
     return container;
 }
 
-/**
- * Создает блок расписания для одного маршрута
- */
-function createRouteScheduleBlock(routeData, currentTime) {
-    const block = document.createElement('div');
-    block.className = 'route-schedule-block';
-    
-    // Заголовок маршрута
-    const header = document.createElement('div');
-    header.className = 'route-schedule-header';
-    
-    const routeBadge = document.createElement('span');
-    routeBadge.className = 'route-badge';
-    routeBadge.textContent = routeData.routeNumber;
-    if (routeData.routeColor) {
-        routeBadge.style.backgroundColor = routeData.routeColor.startsWith('#') 
-            ? routeData.routeColor 
-            : `#${routeData.routeColor}`;
-    }
-    
-    const routeName = document.createElement('span');
-    routeName.className = 'route-name';
-    routeName.textContent = routeData.routeName || '';
-    
-    header.appendChild(routeBadge);
-    header.appendChild(routeName);
-    
-    // Список прибытий
-    const arrivalsList = document.createElement('div');
-    arrivalsList.className = 'arrivals-list';
-    
-    // Показываем до 3 ближайших прибытий
-    routeData.arrivals.slice(0, 3).forEach((arrival, index) => {
-        const arrivalItem = createArrivalItem(arrival, currentTime, index === 0);
-        arrivalsList.appendChild(arrivalItem);
-    });
-    
-    block.appendChild(header);
-    block.appendChild(arrivalsList);
-    
-    return block;
-}
-
-/**
- * Определяет уровень загруженности на основе времени суток
- */
-function getOccupancyLevel(dateTime) {
-    const winnipegTime = new Date(dateTime.toLocaleString('en-US', { timeZone: 'America/Winnipeg' }));
-    const hour = winnipegTime.getHours();
-    const minute = winnipegTime.getMinutes();
-    
-    // Пиковые часы: 7:00-9:00 и 16:00-18:00
-    if ((hour === 7 && minute >= 30) || hour === 8 || (hour === 9 && minute < 30)) {
-        return { level: 'high', icon: '●', text: 'High occupancy', color: '#fa383e' };
-    } else if ((hour === 16 && minute >= 30) || hour === 17 || (hour === 18 && minute < 30)) {
-        return { level: 'high', icon: '●', text: 'High occupancy', color: '#fa383e' };
-    } else if ((hour >= 6 && hour < 7) || (hour === 9 && minute >= 30) || (hour >= 10 && hour < 12) || (hour >= 15 && hour < 16) || (hour >= 18 && hour < 20)) {
-        return { level: 'medium', icon: '◐', text: 'Medium occupancy', color: '#ffc700' };
-    }
-    return { level: 'low', icon: '○', text: 'Low occupancy', color: '#00a400' };
-}
-
-/**
- * Создает элемент отображения одного прибытия
- */
-function createArrivalItem(arrival, currentTime, isFirst) {
-    const item = document.createElement('div');
-    item.className = 'arrival-item';
-    if (isFirst) item.classList.add('next-arrival');
-    
-    // Время прибытия
-    const timeInfo = document.createElement('div');
-    timeInfo.className = 'arrival-time-info';
-    
-    const effectiveTime = arrival.estimatedTime || arrival.scheduledTime;
-    const diffMinutes = Math.round((effectiveTime - currentTime) / 60000);
-    
-    let timeText = '';
-    let timeClass = '';
-    
-    if (diffMinutes <= 1) {
-        timeText = 'NOW';
-        timeClass = 'time-now';
-    } else if (diffMinutes < 60) {
-        timeText = `${diffMinutes} min`;
-        timeClass = diffMinutes <= 5 ? 'time-soon' : 'time-upcoming';
-    } else {
-        timeText = effectiveTime.toLocaleTimeString('en-US', {
-            timeZone: 'America/Winnipeg',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        timeClass = 'time-scheduled';
-    }
-    
-    const timeSpan = document.createElement('span');
-    timeSpan.className = `arrival-time ${timeClass}`;
-    timeSpan.textContent = timeText;
-    
-    timeInfo.appendChild(timeSpan);
-    
-    // Статус и задержка
-    const statusInfo = document.createElement('div');
-    statusInfo.className = 'arrival-status';
-    
-    if (arrival.isRealTime) {
-        const liveIndicator = document.createElement('span');
-        liveIndicator.className = 'live-indicator';
-        liveIndicator.innerHTML = '<i class="fas fa-circle"></i> LIVE';
-        liveIndicator.title = 'Real-time tracking';
-        statusInfo.appendChild(liveIndicator);
-        
-        if (arrival.delay !== null && arrival.delay !== 0) {
-            const delaySpan = document.createElement('span');
-            delaySpan.className = arrival.delay > 0 ? 'delay-late' : 'delay-early';
-            const delayText = arrival.delay > 0 
-                ? `+${arrival.delay} min late` 
-                : `${Math.abs(arrival.delay)} min early`;
-            delaySpan.textContent = delayText;
-            delaySpan.title = `Scheduled: ${arrival.scheduledTime.toLocaleTimeString('en-US', {timeZone: 'America/Winnipeg', hour: '2-digit', minute: '2-digit'})}`;
-            statusInfo.appendChild(delaySpan);
+function groupScheduleByRoute(items) {
+    const groups = new Map();
+    items.forEach(item => {
+        const key = `${item.routeNumber}|${item.headsign || ''}`;
+        if (!groups.has(key)) {
+            groups.set(key, {
+                routeNumber: item.routeNumber,
+                routeName: item.routeName,
+                headsign: item.headsign,
+                routeColor: normalizeRouteColor(item.routeColor),
+                arrivals: []
+            });
         }
-    } else {
-        const scheduledIndicator = document.createElement('span');
-        scheduledIndicator.className = 'scheduled-indicator';
-        scheduledIndicator.textContent = 'Scheduled';
-        scheduledIndicator.title = 'Based on GTFS timetable';
-        statusInfo.appendChild(scheduledIndicator);
+        groups.get(key).arrivals.push(item);
+    });
+
+    return Array.from(groups.values()).sort((a, b) => {
+        const nextA = getEffectiveTime(a.arrivals[0]);
+        const nextB = getEffectiveTime(b.arrivals[0]);
+        return nextA - nextB;
+    });
+}
+
+function buildRouteScheduleCard(routeGroup, currentTime) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'route-item';
+
+    const infoColumn = document.createElement('div');
+    infoColumn.className = 'route-item-info';
+
+    const circle = document.createElement('div');
+    circle.className = 'route-circle';
+    circle.textContent = routeGroup.routeNumber || '—';
+    if (routeGroup.routeColor) circle.style.background = routeGroup.routeColor;
+    infoColumn.appendChild(circle);
+
+    const detailsColumn = document.createElement('div');
+    detailsColumn.className = 'route-item-details';
+
+    const title = document.createElement('div');
+    title.className = 'route-name-schedule';
+    const headsign = routeGroup.headsign || routeGroup.routeName || 'Upcoming service';
+    title.textContent = headsign;
+    detailsColumn.appendChild(title);
+
+    if (routeGroup.routeName && routeGroup.headsign && routeGroup.routeName !== routeGroup.headsign) {
+        const caption = document.createElement('div');
+        caption.className = 'route-caption';
+        caption.textContent = routeGroup.routeName;
+        detailsColumn.appendChild(caption);
     }
-    
-    // Headsign/направление
-    if (arrival.headsign) {
-        const headsignSpan = document.createElement('span');
-        headsignSpan.className = 'arrival-headsign';
-        headsignSpan.textContent = arrival.headsign;
-        statusInfo.appendChild(headsignSpan);
+
+    const grid = document.createElement('div');
+    grid.className = 'route-schedule-grid';
+    routeGroup.arrivals.slice(0, 3).forEach(arrival => {
+        const tile = buildArrivalTile(arrival, currentTime);
+        // add class for source badge styling
+        const badge = tile.querySelector('.arrival-source-badge');
+        if (badge) {
+            badge.classList.add(arrival.type === 'api' ? 'live' : 'scheduled');
+        }
+        grid.appendChild(tile);
+    });
+    detailsColumn.appendChild(grid);
+
+    wrapper.appendChild(infoColumn);
+    wrapper.appendChild(detailsColumn);
+    return wrapper;
+}
+
+function buildArrivalTile(arrival, currentTime) {
+    const tile = document.createElement('div');
+    tile.className = 'arrival-time-item';
+
+    const effectiveTime = getEffectiveTime(arrival);
+    const diffMinutes = Math.round((effectiveTime - currentTime) / 60000);
+
+    // Display time and add a small badge for source (API/GTFS)
+    const timeLabel = document.createElement('div');
+    timeLabel.className = 'arrival-time-label';
+    timeLabel.textContent = formatArrivalLabel(effectiveTime, diffMinutes);
+    tile.appendChild(timeLabel);
+
+    const sourceBadge = document.createElement('div');
+    sourceBadge.className = 'arrival-source-badge';
+    sourceBadge.textContent = arrival.type === 'api' ? 'Live' : 'Scheduled';
+    tile.appendChild(sourceBadge);
+
+    if (diffMinutes <= 0) tile.classList.add('now');
+    else if (diffMinutes <= 5) tile.classList.add('critical-soon');
+    else if (diffMinutes <= 15) tile.classList.add('soon');
+
+    if (arrival.isRealTime) {
+        tile.classList.add('time-live');
+        if (arrival.delay) {
+            const delayBadge = document.createElement('span');
+            delayBadge.className = arrival.delay > 0 ? 'delay-late' : 'delay-early';
+            delayBadge.textContent = arrival.delay > 0 ? `+${arrival.delay}m` : `${arrival.delay}m`;
+            tile.appendChild(delayBadge);
+        }
     }
-    
-    // Индикатор загруженности
-    const occupancy = getOccupancyLevel(effectiveTime);
-    const occupancySpan = document.createElement('span');
-    occupancySpan.className = `occupancy-indicator occupancy-${occupancy.level}`;
-    
-    // Короткие названия для компактности
-    const occupancyLabels = {
-        'low': 'Low',
-        'medium': 'Medium', 
-        'high': 'High'
-    };
-    
-    occupancySpan.innerHTML = `<span style="font-size: 1.2em;">${occupancy.icon}</span> ${occupancyLabels[occupancy.level]}`;
-    occupancySpan.title = occupancy.text;
-    statusInfo.appendChild(occupancySpan);
-    
-    item.appendChild(timeInfo);
-    item.appendChild(statusInfo);
-    
-    return item;
+
+    return tile;
+}
+
+function getEffectiveTime(arrival) {
+    return arrival.estimatedTime || arrival.scheduledTime;
+}
+
+function formatArrivalLabel(date, diffMinutes) {
+    if (diffMinutes <= 1) return 'Due';
+    if (diffMinutes < 60) return `${diffMinutes} min`;
+    return date.toLocaleTimeString('en-CA', {
+        timeZone: 'America/Winnipeg',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function normalizeRouteColor(color) {
+    if (!color) return null;
+    const trimmed = color.trim();
+    if (trimmed.startsWith('#')) return trimmed;
+    return `#${trimmed}`;
 }

@@ -6,9 +6,67 @@
 // и другие полезные хелперы.
 // ===================================================================
 
+// Debounce функция для оптимизации частых вызовов
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// --- Global State Variables (Moved from main_dynamic.js for accessibility) ---
+window.gtfsData = {
+    routes: [], trips: [], shapes: {}, stopTimes: [],
+    routeToTrips: {}, tripToShape: {}, tripToStops: {}, stopDetails: {}
+};
+window.filters = { direction: null, street: null, route: null };
+window.darkMode = false;
+window.favorites = [];
+window.regularNotificationRules = [];
+window.allLocalStops = [];
+
+// ===================================================================
+//     utils.js - Вспомогательные утилиты
+// ===================================================================
+// Мелкие, но важные функции, которые используются в разных
+// частях приложения: рандомные сообщения, форматирование времени,
+// и другие полезные хелперы.
+// ===================================================================
+
+// Debounce функция для оптимизации частых вызовов
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 function determineSimulationTimeUTC() {
     // Возвращаем текущее время пользователя (браузера)
     return new Date();
+}
+
+function extractStopSchedule(payload) {
+    if (!payload) return null;
+    if (payload['stop-schedule']) return payload['stop-schedule'];
+    if (payload.data?.['stop-schedule']) return payload.data['stop-schedule'];
+    if (payload.data?.data?.['stop-schedule']) return payload.data.data['stop-schedule'];
+    return null;
+}
+
+function extractRouteSchedules(payload) {
+    const stopSchedule = extractStopSchedule(payload);
+    return stopSchedule?.['route-schedules'] || [];
 }
 
 // Получить текущее время в таймзоне Winnipeg для API запросов
@@ -256,22 +314,132 @@ async function geocodeAddress(address) {
 
 async function getAddressSuggestions(query, limit = 5) {
     if (!query || query.length < 3) return [];
-    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=${limit}&q=${encodeURIComponent(query + ', Winnipeg')}`;
+    
+    const suggestions = [];
+    const lowerQuery = query.toLowerCase();
+
+    // 1. Local Stops Search (Top priority)
+    if (typeof allLocalStops !== 'undefined' && Array.isArray(allLocalStops) && allLocalStops.length > 0) {
+        const stopMatches = allLocalStops.filter(stop => {
+            if (!stop) return false;
+            const name = (stop.stop_name || '').toLowerCase();
+            const code = String(stop.stop_code || stop.stop_id || '');
+            return name.includes(lowerQuery) || code === lowerQuery;
+        }).slice(0, 2);
+
+        stopMatches.forEach(stop => {
+            suggestions.push({
+                display: `${stop.stop_name} (#${stop.stop_code || stop.stop_id})`,
+                lat: parseFloat(stop.stop_lat),
+                lon: parseFloat(stop.stop_lon),
+                type: 'stop'
+            });
+        });
+    }
+
+    // 2. External Address Search (Photon + Nominatim Fallback)
+    const winnipegLat = 49.8951;
+    const winnipegLon = -97.1384;
+    const fetchLimit = 15;
+    
+    const isInWinnipegMetro = (lat, lon) => {
+        return (lat >= 49.60 && lat <= 50.20 && lon >= -97.60 && lon <= -96.60);
+    };
+
+    let photonResults = [];
+    let shouldUseNominatim = false;
+    const hasNumberInQuery = /\d/.test(query);
+
+    // Try Photon first (Fast)
     try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'mygtfs-app' } });
-        if (!res.ok) return [];
-        const data = await res.json();
-        if (Array.isArray(data)) {
-            return data.map(item => ({
-                display: item.display_name,
-                lat: parseFloat(item.lat),
-                lon: parseFloat(item.lon)
-            }));
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${winnipegLat}&lon=${winnipegLon}&limit=${fetchLimit}&lang=en`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000); 
+        
+        const res = await fetch(photonUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+            const data = await res.json();
+            if (data.features && Array.isArray(data.features)) {
+                photonResults = data.features.filter(f => isInWinnipegMetro(f.geometry.coordinates[1], f.geometry.coordinates[0]));
+            }
         }
     } catch (e) {
-        console.error('Address suggestion error:', e);
+        console.warn('Photon fetch failed:', e);
     }
-    return [];
+
+    // Check if Photon results are sufficient
+    const photonHasHouseNumbers = photonResults.some(f => f.properties.housenumber);
+    
+    // If query has a number but Photon didn't find any house numbers (or found nothing), try Nominatim
+    if ((hasNumberInQuery && !photonHasHouseNumbers) || photonResults.length === 0) {
+        shouldUseNominatim = true;
+    }
+
+    let externalSuggestions = [];
+
+    if (shouldUseNominatim) {
+        try {
+            // Nominatim Fallback (Slower but better interpolation)
+            const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Winnipeg')}&addressdetails=1&limit=${limit}&accept-language=en`;
+            const res = await fetch(nominatimUrl, { headers: { 'User-Agent': 'WinnipegTransitApp/1.0' } });
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    data.forEach(item => {
+                        const lat = parseFloat(item.lat);
+                        const lon = parseFloat(item.lon);
+                        if (!isInWinnipegMetro(lat, lon)) return;
+
+                        const shortName = item.display_name.split(',').slice(0, 3).join(',').trim();
+                        externalSuggestions.push({
+                            display: shortName,
+                            lat: lat,
+                            lon: lon,
+                            type: 'address'
+                        });
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('Nominatim fetch failed:', e);
+        }
+    }
+
+    // If Nominatim found nothing (or wasn't used), use Photon results
+    if (externalSuggestions.length === 0 && photonResults.length > 0) {
+        photonResults.forEach(feature => {
+            const p = feature.properties;
+            const lat = feature.geometry.coordinates[1];
+            const lon = feature.geometry.coordinates[0];
+
+            let displayParts = [];
+            if (p.name) displayParts.push(p.name);
+            if (p.housenumber && p.street) displayParts.push(`${p.housenumber} ${p.street}`);
+            else if (p.street) displayParts.push(p.street);
+            
+            if (p.name && p.street && p.name === p.street) {
+                displayParts = [p.name];
+                if (p.housenumber) displayParts[0] = `${p.housenumber} ${p.name}`;
+            }
+
+            if (p.city && p.city !== 'Winnipeg') displayParts.push(p.city);
+            
+            if (displayParts.length === 0) {
+                displayParts.push(p.formatted || 'Unknown Location');
+            }
+            
+            externalSuggestions.push({
+                display: displayParts.join(', '),
+                lat: lat,
+                lon: lon,
+                type: 'address'
+            });
+        });
+    }
+
+    return [...suggestions, ...externalSuggestions].slice(0, limit);
 }
 
 function findNearestStop(lat, lon) {

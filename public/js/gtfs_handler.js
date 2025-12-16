@@ -128,6 +128,12 @@ async function loadAndProcessGTFS() {
 
     } catch (error) {
         console.error("GTFS Load/Process Error:", error);
-        showLoadingOverlay(`Data loading error: ${error.message}. Please refresh the page.`);
+        hideLoadingOverlay();
+        if (typeof showToast === 'function') {
+            showToast(`Data loading error: ${error.message}.`, 'error', 0, [
+                { label: 'Retry', callback: () => { showLoadingOverlay('Retrying GTFS...'); setTimeout(() => loadAndProcessGTFS(), 200); } },
+                { label: 'Reload Page', callback: () => { window.location.reload(); } }
+            ]);
+        }
     }
 }

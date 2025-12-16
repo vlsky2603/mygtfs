@@ -191,10 +191,7 @@ function closePanel(panelId, removeBlur = true) {
 
 function togglePanel(panelId) {
     const panel = document.getElementById(panelId);
-    if (!panel) {
-        console.error(`Panel with ID '${panelId}' not found.`);
-        return;
-    }
+    if (!panel) return;
     const willActivate = !panel.classList.contains('active');
 
     if (willActivate) {
@@ -202,8 +199,6 @@ function togglePanel(panelId) {
         panel.classList.add('active');
         if (panelId === 'favorites-panel') renderFavoritesPanel();
         if (panelId === 'regular-notifications-panel') renderRegularNotificationsPanel();
-        if (panelId === 'routes-panel') renderRoutesPanel();
-        if (panelId === 'settings-panel') renderSettingsPanel();
     } else {
         closePanel(panelId, true);
         if (panelId === 'regular-notifications-panel') closeRuleEditor();
@@ -214,9 +209,6 @@ function togglePanel(panelId) {
 function closeFilterPanel(removeBlur = true) { closePanel('filter-panel', removeBlur); }
 function closeFavoritesPanel(removeBlur = true) { closePanel('favorites-panel', removeBlur); }
 function closeRegularNotificationsPanel(removeBlur = true) { closePanel('regular-notifications-panel', removeBlur); closeRuleEditor(); }
-function closeRoutesPanel(removeBlur = true) { closePanel('routes-panel', removeBlur); }
-function closeSettingsPanel(removeBlur = true) { closePanel('settings-panel', removeBlur); }
-
 function closeSchedulePanel(removeBlur = true) {
     const panel = document.getElementById('schedule-panel');
     if (panel) { panel.classList.remove('active'); panel.style.maxHeight = ''; }
@@ -231,61 +223,14 @@ function closeSchedulePanel(removeBlur = true) {
 
 function closeOtherPanels(exceptId) {
     const closers = {
+        'filter-panel': closeFilterPanel,
         'favorites-panel': closeFavoritesPanel,
         'regular-notifications-panel': closeRegularNotificationsPanel,
-        'schedule-panel': closeSchedulePanel,
-        'routes-panel': closeRoutesPanel,
-        'settings-panel': closeSettingsPanel
+        'schedule-panel': closeSchedulePanel
     };
     Object.entries(closers).forEach(([panelId, closer]) => {
         if (panelId !== exceptId) closer(false);
     });
-}
-
-function renderRoutesPanel() {
-    const container = document.querySelector('.routes-list-container');
-    if (!container) return;
-    container.innerHTML = '';
-
-    if (!gtfsData.routes || gtfsData.routes.length === 0) {
-        container.innerHTML = '<div class="empty-state">No routes loaded</div>';
-        return;
-    }
-
-    const routesWithData = gtfsData.routes.filter(r => r.route_id);
-    
-    // Sort routes
-    routesWithData.sort((a, b) => {
-        const numA = parseInt(a.route_short_name, 10);
-        const numB = parseInt(b.route_short_name, 10);
-        if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numA - numB;
-        return String(a.route_short_name).localeCompare(String(b.route_short_name));
-    });
-
-    routesWithData.forEach(route => {
-        const item = document.createElement('div');
-        item.className = 'route-list-item';
-        item.innerHTML = `
-            <div class="route-circle" style="background-color: #${route.route_color || '000000'}; color: #${route.route_text_color || 'FFFFFF'}">${route.route_short_name}</div>
-            <div class="route-name">${route.route_long_name || ''}</div>
-        `;
-        item.addEventListener('click', () => {
-            // Select route logic
-            if (typeof applyRouteFilter === 'function') {
-                applyRouteFilter(route.route_id);
-                closeRoutesPanel();
-            }
-        });
-        container.appendChild(item);
-    });
-}
-
-function renderSettingsPanel() {
-    const darkModeSwitch = document.getElementById('dark-mode-switch');
-    if (darkModeSwitch) {
-        darkModeSwitch.checked = document.body.classList.contains('dark-mode');
-        darkModeSwitch.onchange = toggleDarkMode;
-    }
 }
 
 function enableSwipeToClose(panelId, closeFn) {

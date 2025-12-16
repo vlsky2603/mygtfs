@@ -339,7 +339,7 @@ async function onRuleEditorStopChange(event, preselectRouteNumber = null) {
         if (!response.ok) throw new Error('Failed to fetch routes for stop');
         const scheduleData = await response.json();
         
-        const routesAtStop = scheduleData?.data?.['stop-schedule']?.['route-schedules'] || [];
+        const routesAtStop = extractRouteSchedules(scheduleData);
 
         routeSelect.innerHTML = '<option value="">-- Select Route --</option>';
         if (routesAtStop.length > 0) {
@@ -483,7 +483,7 @@ async function checkAndProcessRegularNotificationRules() {
                 continue;
             }
             const scheduleData = await response.json();
-            const routeSchedulesAPI = scheduleData?.data?.['stop-schedule']?.['route-schedules'] || [];
+            const routeSchedulesAPI = extractRouteSchedules(scheduleData);
             const targetRouteSchedule = routeSchedulesAPI.find(rs => String(rs.route.number) === String(rule.routeNumber));
 
             if (targetRouteSchedule) {

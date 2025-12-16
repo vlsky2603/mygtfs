@@ -149,12 +149,16 @@ async function loadAndProcessFromAPI() {
         
     } catch (error) {
         console.error("API Load/Process Error:", error);
-        showLoadingOverlay(`API error: ${error.message}. Using local GTFS data...`);
-        
-        // Fallback на локальные данные если API не работает
-        setTimeout(() => {
-            loadAndProcessGTFS();
-        }, 2000);
+        hideLoadingOverlay();
+        if (typeof showToast === 'function') {
+            showToast(`API error: ${error.message}.`, 'error', 0, [
+                { label: 'Retry API', callback: () => { showLoadingOverlay('Retrying API...'); setTimeout(() => loadAndProcessFromAPI(), 200); } },
+                { label: 'Use Local GTFS', callback: () => { showLoadingOverlay('Loading local GTFS...'); setTimeout(() => loadAndProcessGTFS(), 200); } }
+            ]);
+        } else {
+            // Fallback if showToast not available
+            setTimeout(() => loadAndProcessGTFS(), 1500);
+        }
     }
 }
 

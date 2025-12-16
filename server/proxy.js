@@ -136,8 +136,42 @@ function getDistance(lat1, lon1, lat2, lon2) {
 }
 
 async function updateAllStopsData() {
-    // Placeholder for data update logic
-    console.log('updateAllStopsData not implemented, skipping.');
+    if (!API_KEY) {
+        console.error('Cannot update stops: API_KEY is missing.');
+        return;
+    }
+    console.log('Starting updateAllStopsData...');
+    try {
+        // Fetch all stops.
+        const apiUrl = `https://api.winnipegtransit.com/v3/stops.json?api-key=${API_KEY}&usage=long`; 
+        
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`API responded with ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (!data.stops) {
+            throw new Error('API response missing "stops" array');
+        }
+        
+        const stops = data.stops.map(s => ({
+            stop_id: s.key,
+            stop_name: s.name,
+            stop_lat: parseFloat(s.geographic.latitude),
+            stop_lon: parseFloat(s.geographic.longitude),
+            stop_code: s.number,
+            street_name: s.street?.name || '',
+            cross_street_name: s['cross-street']?.name || '',
+            direction: s.direction || ''
+        }));
+        
+        saveData(stops);
+        console.log(`Successfully updated ${stops.length} stops.`);
+        
+    } catch (error) {
+        console.error('Error updating stops data:', error);
+    }
 }
 
 // --- API Маршруты ---
@@ -349,134 +383,234 @@ app.get('/api/routes/:routeNumber/stops', async (req, res) => {
     }
 });
 
+// Получение геометрии маршрута (варианта)
+app.get('/api/variant/:variantKey', async (req, res) => {
+    const { variantKey } = req.params;
+    if (!API_KEY) return res.status(500).json({ error: 'API key missing' });
+    
+    const url = `https://api.winnipegtransit.com/v3/variants/${variantKey}.json?api-key=${API_KEY}&usage=short`;
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error(`Error fetching variant ${variantKey}:`, error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // ===================================================================
-//               ИСПРАВЛЕННЫЙ МАРШРУТ ДЛЯ РАСПИСАНИЙ
+//               ЭНДПОИНТЫ ДЛЯ ГЕОКОДИРОВАНИЯ И ПЛАНИРОВАНИЯ
 // ===================================================================
-app.get('/api/stops/:stopId/schedule', async (req, res) => {
-    const { stopId } = req.params;
-    const { usage = 'long', start, end } = req.query;
+
+// Геокодирование адресов через Nominatim
+app.get('/api/geocode', async (req, res) => {
+    const { address } = req.query;
+    if (!address) {
+        return res.status(400).json({ error: 'Address query parameter is required.' });
+    }
+    try {
+        // Viewbox для Виннипега, чтобы сузить поиск
+        const viewbox = '-97.3258,49.9928,-96.9531,49.7657';
+        const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&viewbox=${viewbox}&bounded=1`;
+        
+        const response = await fetch(apiUrl, {
+            headers: { 'User-Agent': 'WinnipegTransitApp/1.0 (https://github.com/vlsky2603/mygtfs)' }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Nominatim API request failed with status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        res.status(500).json({ error: 'Internal server error during geocoding.' });
+    }
+});
+
+// Планировщик маршрутов
+app.get('/api/trip-plan', async (req, res) => {
+    const { fromLat, fromLon, toLat, toLon } = req.query;
+    if (!fromLat || !fromLon || !toLat || !toLon) {
+        return res.status(400).json({ error: 'Origin and destination coordinates are required.' });
+    }
 
     if (!API_KEY) {
         return res.status(500).json({ error: 'API key is not configured on the server.' });
     }
-    if (!start || !end) {
-        return res.status(400).json({ error: 'The "start" and "end" query parameters are required.' });
-    }
-    
-    // Создаем уникальный ключ для кэша, чтобы повторные запросы были быстрее
-    const cacheKey = `schedule-${stopId}-${usage}-${start}-${end}`;
-    const cachedData = scheduleCache.get(cacheKey);
-
-    if (cachedData) {
-        console.log(`Backend: Serving schedule for stop ${stopId} from cache.`);
-        return res.json(cachedData);
-    }
 
     try {
-        // Поддержка Unix timestamp (миллисекунды) или ISO строк
-        let startTimestamp, endTimestamp;
+        const directApiUrl = `https://api.winnipegtransit.com/v3/trip-planner.json?api-key=${API_KEY}&origin=geo/${fromLat},${fromLon}&destination=geo/${toLat},${toLon}`;
         
-        if (/^\d+$/.test(start)) {
-            // Unix timestamp (миллисекунды)
-            startTimestamp = parseInt(start, 10);
-            endTimestamp = parseInt(end, 10);
-        } else {
-            // ISO строка - конвертируем в timestamp
-            startTimestamp = new Date(start).getTime();
-            endTimestamp = new Date(end).getTime();
-        }
-
-        // Конвертируем timestamp в ISO строки для Winnipeg Transit API
-        // API ожидает местное время Winnipeg в формате YYYY-MM-DDTHH:MM:SS
-        // Winnipeg в CDT (UTC-5) или CST (UTC-6)
-        
-        // Форматируем в Winnipeg местное время
-        const formatForWinnipegAPI = (timestamp) => {
-            const date = new Date(timestamp);
-            // Конвертируем в строку Winnipeg времени
-            const winnipegStr = date.toLocaleString('en-US', {
-                timeZone: 'America/Winnipeg',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            });
-            
-            // Парсим "MM/DD/YYYY, HH:mm:ss" в "YYYY-MM-DDTHH:MM:SS"
-            const [datePart, timePart] = winnipegStr.split(', ');
-            const [month, day, year] = datePart.split('/');
-            const pad = (n) => String(n).padStart(2, '0');
-            return `${year}-${pad(month)}-${pad(day)}T${timePart}`;
-        };
-        
-        const startISO = formatForWinnipegAPI(startTimestamp);
-        const endISO = formatForWinnipegAPI(endTimestamp);
-        
-        console.log(`Backend: Schedule request - stopId=${stopId}, start=${startISO}, end=${endISO}`);
-
-        console.log(`Backend: Schedule request - stopId=${stopId}, start=${startISO}, end=${endISO}`);
-
-        // Пробуем использовать внешний CORS proxy для обхода WAF блокировки
-        const directApiUrl = `https://api.winnipegtransit.com/v3/stops/${stopId}/schedule.json?api-key=${API_KEY}&usage=${usage}&start=${startISO}&end=${endISO}`;
-        
-        // Список CORS прокси для попытки обхода блокировки
-        const corsProxies = [
-            '', // Сначала прямой запрос
-            'https://corsproxy.io/?',
-            'https://api.allorigins.win/raw?url=',
-        ];
-        
+        const corsProxies = ['', 'https://corsproxy.io/?', 'https://api.allorigins.win/raw?url='];
         let apiResponse = null;
         let lastError = null;
-        
+
         for (const proxy of corsProxies) {
             try {
                 const apiUrl = proxy ? proxy + encodeURIComponent(directApiUrl) : directApiUrl;
-                console.log(`Backend: Trying request via ${proxy || 'direct'}: ${apiUrl.substring(0, 100)}...`);
-                
                 apiResponse = await fetch(apiUrl, {
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                        'Accept': 'application/json',
-                        'Referer': 'https://winnipegtransit.com/'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Accept': 'application/json'
                     },
-                    timeout: 10000
+                    timeout: 20000
                 });
-                
-                if (apiResponse.ok) {
-                    console.log(`Backend: Success with ${proxy || 'direct'}`);
-                    break;
-                }
+                if (apiResponse.ok) break;
                 lastError = `Status ${apiResponse.status}`;
             } catch (err) {
                 lastError = err.message;
-                console.log(`Backend: Failed with ${proxy || 'direct'}: ${lastError}`);
                 apiResponse = null;
             }
         }
-        
+
         if (!apiResponse || !apiResponse.ok) {
-            const errorBody = await apiResponse.text();
-            console.error(`Backend: Winnipeg Transit API error. Status: ${apiResponse.status}, Body: ${errorBody}`);
-            return res.status(apiResponse.status).send(errorBody);
+            console.error(`Trip Planner API error: ${lastError}`);
+            return res.status(apiResponse?.status || 503).json({ error: 'Failed to fetch trip plan from API.' });
         }
 
         const data = await apiResponse.json();
-        
-        // Кэшируем успешный ответ
-        scheduleCache.set(cacheKey, { data });
-        
-         res.json({ data });
-
+        res.json(data);
     } catch (error) {
-        console.error(`Backend: Internal server error for stop ${stopId}:`, error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Trip planning error:', error);
+        res.status(500).json({ error: 'Internal server error during trip planning.' });
     }
 });
+
+// Получение пешеходного маршрута через OSRM
+app.get('/api/walking-route', async (req, res) => {
+    const { fromLat, fromLon, toLat, toLon } = req.query;
+    if (!fromLat || !fromLon || !toLat || !toLon) {
+        return res.status(400).json({ error: 'Missing coordinates' });
+    }
+    
+    // OSRM Public API
+    const url = `https://router.project-osrm.org/route/v1/foot/${fromLon},${fromLat};${toLon},${toLat}?overview=full&geometries=geojson`;
+    
+    try {
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'WinnipegTransitApp/1.0' }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`OSRM failed with status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Walking route error:', error);
+        res.status(500).json({ error: 'Failed to fetch walking route' });
+    }
+});
+
+// Получение расписания для конкретной остановки
+app.get('/api/stops/:stopId/schedule', async (req, res) => {
+    const { stopId } = req.params;
+    const { usage = 'short', start, end } = req.query;
+
+    if (!API_KEY) {
+        return res.status(500).json({ error: 'API key is not configured on the server.' });
+    }
+    if (!stopId) {
+        return res.status(400).json({ error: 'stopId is required' });
+    }
+
+    const parseDate = (value, fallbackDate) => {
+        if (!value) return fallbackDate;
+        if (!isNaN(Number(value))) {
+            const numeric = Number(value);
+            const epochMs = numeric > 1e12 ? numeric : numeric * 1000;
+            return new Date(epochMs);
+        }
+        const parsed = new Date(value);
+        return isNaN(parsed.getTime()) ? fallbackDate : parsed;
+    };
+
+    const fallbackStart = new Date();
+    const startDate = parseDate(start, fallbackStart);
+    const fallbackEnd = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
+    const endDate = parseDate(end, fallbackEnd);
+
+    // Use full ISO with timezone so API receives timezone-aware timestamps
+    const startISO = startDate.toISOString();
+    const endISO = endDate.toISOString();
+
+    const cacheKey = `${stopId}-${usage}-${startISO}-${endISO}`;
+    const cached = scheduleCache.get(cacheKey);
+    if (cached) {
+        return res.json(cached);
+    }
+
+    const directApiUrl = `https://api.winnipegtransit.com/v3/stops/${stopId}/schedule.json?api-key=${API_KEY}&usage=${usage}&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`;
+    const corsProxies = ['', 'https://corsproxy.io/?', 'https://api.allorigins.win/raw?url='];
+    let apiResponse = null;
+    let lastError = null;
+
+    for (const proxy of corsProxies) {
+        try {
+            const url = proxy ? proxy + encodeURIComponent(directApiUrl) : directApiUrl;
+            apiResponse = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'application/json'
+                },
+                timeout: 15000
+            });
+            if (!apiResponse) { lastError = 'No response'; continue; }
+            if (!apiResponse.ok) {
+                lastError = `Status ${apiResponse.status}`;
+                continue;
+            }
+            // Quick check: ensure response looks like JSON; otherwise try next proxy
+            const contentType = apiResponse.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                // Peek at start of body to check for JSON-like structure
+                const peekText = await apiResponse.clone().text();
+                if (!peekText.trim().startsWith('{') && !peekText.trim().startsWith('[')) {
+                    lastError = 'Non-JSON response from proxy';
+                    continue; // try next proxy
+                }
+            }
+            // If we reach here, apiResponse looks ok and likely JSON
+            break;
+        } catch (err) {
+            apiResponse = null;
+            lastError = err.message;
+        }
+    }
+
+    if (!apiResponse || !apiResponse.ok) {
+        try {
+            const text = apiResponse ? await apiResponse.text() : 'No response body';
+            console.error(`Stop schedule API error for ${stopId}: ${lastError} -> ${text}`);
+        } catch (e) {
+            console.error(`Stop schedule API error for ${stopId}: ${lastError}`);
+        }
+        // Return 502 to indicate proxy failure but include a hint in body.
+        return res.status(apiResponse?.status || 502).json({ error: 'Failed to fetch stop schedule from API.', detail: lastError });
+    }
+
+    try {
+        const data = await apiResponse.json();
+        scheduleCache.set(cacheKey, data);
+        res.json(data);
+    } catch (error) {
+        try {
+            const txt = await apiResponse.text();
+            console.error('Error parsing stop schedule response (body):', txt);
+        } catch (err) {
+            console.error('Error parsing stop schedule response: ', error);
+        }
+        // If parse fails, don't throw 500. Return a 502 with the parse error detail to the client.
+        res.status(502).json({ error: 'Failed to parse stop schedule response (invalid JSON).', detail: error.message });
+    }
+});
+
 // ===================================================================
 
 // "Catch-all" маршрут для SPA

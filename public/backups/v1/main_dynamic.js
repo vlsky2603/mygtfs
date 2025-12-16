@@ -13,15 +13,18 @@ let routeStopMarkersLayerGroup;
 let simulatedBusesLayerGroup;
 let mapTileLayer;
 
-// allLocalStops moved to utils.js
-// gtfsData moved to utils.js
+let allLocalStops = [];
+let gtfsData = {
+    routes: [], trips: [], shapes: {}, stopTimes: [],
+    routeToTrips: {}, tripToShape: {}, tripToStops: {}, stopDetails: {}
+};
 
 let centerMarker;
 let radiusCircle;
 let userLocationMarker = null;
 
-// filters moved to utils.js
-// darkMode moved to utils.js
+let filters = { direction: null, street: null, route: null };
+let darkMode = false;
 let currentRoutePolyline = null;
 let startAddressResults = [];
 let endAddressResults = [];
@@ -30,9 +33,9 @@ let currentStopForSchedulePanel = null;
 let liveViewOriginStopMarker = null; 
 
 let _currentPanelApiRouteSchedules = [];
-// favorites moved to utils.js
+let favorites = [];
 let scheduledNotifications = [];
-// regularNotificationRules moved to utils.js
+let regularNotificationRules = [];
 let activeSimulatedBuses = {};
 
 let isLiveBusViewActive = false;
@@ -128,9 +131,6 @@ function initMap() {
                 refreshMarkers(map.getCenter());
                 // Подгружаем остановки для новой области если нужно
                 loadStopsForCurrentView();
-            } else if (document.body.classList.contains('search-results-active')) {
-                // Ensure markers are cleared when in search results mode
-                if (markerClusterGroup) markerClusterGroup.clearLayers();
             }
         }, 250);
         const circlePath = radiusCircle.getElement();
@@ -147,17 +147,15 @@ function initMap() {
 }
 
 function initUI() {
-    // Removed filter panel listeners
+    document.getElementById('filter-toggle')?.addEventListener('click', () => togglePanel('filter-panel'));
+    document.getElementById('close-filters')?.addEventListener('click', () => closeFilterPanel());
+    document.getElementById('reset-filters')?.addEventListener('click', resetFilters);
     
     document.getElementById('favorites-toggle')?.addEventListener('click', () => togglePanel('favorites-panel'));
     document.getElementById('close-favorites-panel')?.addEventListener('click', () => closeFavoritesPanel());
     
     document.getElementById('regular-notifications-toggle-button')?.addEventListener('click', () => togglePanel('regular-notifications-panel'));
     document.getElementById('close-regular-notifications-panel')?.addEventListener('click', () => closeRegularNotificationsPanel());
-
-    // New panels
-    document.getElementById('close-routes-panel')?.addEventListener('click', () => closeRoutesPanel());
-    document.getElementById('close-settings-panel')?.addEventListener('click', () => closeSettingsPanel());
 
     initQuickPlannerUI();
     
@@ -169,24 +167,21 @@ function initUI() {
     document.getElementById('theme-toggle')?.addEventListener('click', toggleDarkMode);
     document.getElementById('route-filter')?.addEventListener('change', onSelectRoute);
     document.getElementById('reset-route-button')?.addEventListener('click', handleResetRoute);
-    document.getElementById('ios-global-back-button')?.addEventListener('click', handleGlobalBack);
+    document.getElementById('ios-clear-filter-button')?.addEventListener('click', handleResetRoute);
     
     document.getElementById('add-new-regular-notification-rule')?.addEventListener('click', openRuleEditorForAdd);
     document.getElementById('save-rule-button')?.addEventListener('click', saveRuleFromEditor);
     document.getElementById('cancel-rule-button')?.addEventListener('click', closeRuleEditor);
-    
-    const dockButtons = document.querySelectorAll('.ios-dock-button[data-panel-target]');
-    dockButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent bubbling issues
-            togglePanel(button.dataset.panelTarget);
-        });
+    document.getElementById('rule-stop-select')?.addEventListener('change', onRuleEditorStopChange);
+
+    document.querySelectorAll('.ios-dock-button[data-panel-target]').forEach(button => {
+        button.addEventListener('click', () => togglePanel(button.dataset.panelTarget));
     });
+
     enableSwipeToClose('schedule-panel', () => closeSchedulePanel());
+    enableSwipeToClose('filter-panel', () => closeFilterPanel());
     enableSwipeToClose('favorites-panel', () => closeFavoritesPanel());
     enableSwipeToClose('regular-notifications-panel', () => closeRegularNotificationsPanel());
-    enableSwipeToClose('routes-panel', () => closeRoutesPanel());
-    enableSwipeToClose('settings-panel', () => closeSettingsPanel());
 }
 
 function setSearchPanelCollapsed(collapsed) {
@@ -279,7 +274,6 @@ function initQuickPlannerUI() {
     }, 275);
 
     destinationInput.addEventListener('input', (e) => {
-        if (isLiveBusViewActive) deactivateLiveBusView(true);
         const value = e.target.value;
         quickPlannerState.destination = null;
         if (!value.trim()) {
@@ -292,7 +286,6 @@ function initQuickPlannerUI() {
     });
 
     destinationInput.addEventListener('focus', () => {
-        if (isLiveBusViewActive) deactivateLiveBusView(true);
         if (quickPlannerState.suggestions.length > 0) {
             renderQuickSuggestions(quickPlannerState.suggestions);
         }
@@ -324,7 +317,7 @@ function initQuickPlannerUI() {
     });
 
     document.getElementById('ios-locate-button')?.addEventListener('click', () => locateUser());
-    // document.getElementById('ios-layers-button')?.addEventListener('click', () => togglePanel('filter-panel')); // Removed
+    document.getElementById('ios-layers-button')?.addEventListener('click', () => togglePanel('filter-panel'));
     document.getElementById('ios-theme-button')?.addEventListener('click', () => toggleDarkMode());
 
     resetQuickResultsPlaceholder();
@@ -555,8 +548,9 @@ function renderQuickPlanCards(plans, destinationLabel) {
     if (!container) return;
     container.classList.remove('empty');
     container.innerHTML = '';
-    // Status text removed as requested
-    updateResultsStatus('');
+    const routeCount = plans.length;
+    const label = destinationLabel ? `${routeCount} option${routeCount === 1 ? '' : 's'} to ${destinationLabel}` : `${routeCount} option${routeCount === 1 ? '' : 's'}`;
+    updateResultsStatus(label);
     document.body.classList.add('search-results-active');
     
     // Hide radius circle when showing results
@@ -688,32 +682,13 @@ function clearQuickPlannerLayers() {
 
 function getSegmentEndpointLatLng(endpoint) {
     if (!endpoint) return null;
-    
-    // 1. Try explicit coordinates in various formats
-    const geo = endpoint.stop?.centre?.geographic 
-             || endpoint.centre?.geographic 
-             || endpoint.origin?.centre?.geographic 
-             || endpoint.destination?.centre?.geographic
-             || endpoint.geographic
-             || endpoint.point?.centre?.geographic;
-
+    const geo = endpoint.stop?.centre?.geographic || endpoint.centre?.geographic || endpoint.origin?.centre?.geographic || endpoint.destination?.centre?.geographic;
     if (geo && geo.latitude && geo.longitude) {
         return [parseFloat(geo.latitude), parseFloat(geo.longitude)];
     }
     if (endpoint.stop?.lat && endpoint.stop?.lon) {
         return [parseFloat(endpoint.stop.lat), parseFloat(endpoint.stop.lon)];
     }
-    if (endpoint.lat && endpoint.lon) {
-        return [parseFloat(endpoint.lat), parseFloat(endpoint.lon)];
-    }
-
-    // 2. Try looking up by Stop ID if we have one
-    const stopId = endpoint.stop?.key || endpoint.stop?.id || endpoint.stopId;
-    if (stopId) {
-        const coords = getStopCoordsById(stopId);
-        if (coords) return coords;
-    }
-
     return null;
 }
 
@@ -767,8 +742,8 @@ async function getPolylineForRideSegment(segment, startStopId, endStopId, fallba
         if (!stops) continue;
         
         // Optimization: Check if this trip actually contains the start and end stops
-        if (startStopId && !stops.some(s => String(s.stop_id) === String(startStopId))) continue;
-        if (endStopId && !stops.some(s => String(s.stop_id) === String(endStopId))) continue;
+        // This is expensive if we do it for every trip. 
+        // But we need to find a shape that matches.
         
         const shapeId = gtfsData.tripToShape?.[tripId];
         const shapePoints = gtfsData.shapes?.[shapeId];
@@ -913,14 +888,14 @@ async function drawQuickPlanOnMap(plan) {
 
     const boundsPoints = [];
     const segments = plan.segments || [];
+    let lastStopContext = null;
 
-    // Process all segments in parallel to speed up rendering
-    const layerPromises = segments.map(async (segment, idx) => {
-        // console.log(`Processing segment ${idx}:`, segment.type, segment);
+    for (let idx = 0; idx < segments.length; idx++) {
+        const segment = segments[idx];
+
         if (segment.type === 'ride') {
-            const startContext = findPreviousStopContext(segments, idx) || null;
+            const startContext = lastStopContext || findPreviousStopContext(segments, idx) || null;
             const endContext = findNextStopContext(segments, idx + 1) || null;
-            
             const ridePolyline = await getPolylineForRideSegment(
                 segment,
                 startContext?.stopId,
@@ -928,193 +903,97 @@ async function drawQuickPlanOnMap(plan) {
                 startContext?.coords,
                 endContext?.coords
             );
-            
             const fallbackLine = buildFallbackLine(startContext?.coords, endContext?.coords);
             const polyPoints = ridePolyline || fallbackLine;
-            
-            if (!polyPoints || polyPoints.length < 2) return null;
-            
+            if (!polyPoints || polyPoints.length < 2) continue;
             const color = getRideSegmentColor(segment);
-            return {
-                type: 'ride',
-                polyPoints,
-                color
-            };
-        } else {
-            // Handle walk, transfer, and other types (case-insensitive check)
-            const type = (segment.type || '').toLowerCase();
-            if (type === 'walk' || type === 'walking' || type === 'transfer') {
-                let from = getSegmentEndpointLatLng(segment.from);
-                let to = getSegmentEndpointLatLng(segment.to);
-                
-            // Fallback: try to use previous/next segment endpoints if current ones are missing
-            if (!from && idx > 0) {
-                 const prev = segments[idx-1];
-                 from = getSegmentEndpointLatLng(prev.to);
-            } else if (!from && idx === 0 && quickPlannerState.origin) {
-                 // Fallback for first segment: use origin
-                 from = [quickPlannerState.origin.lat, quickPlannerState.origin.lon];
-            }
-
-            if (!to && idx < segments.length - 1) {
-                 const next = segments[idx+1];
-                 to = getSegmentEndpointLatLng(next.from);
-            } else if (!to && idx === segments.length - 1 && quickPlannerState.destination) {
-                 // Fallback for last segment: use destination
-                 to = [quickPlannerState.destination.lat, quickPlannerState.destination.lon];
-            }
-            
-            if (from && to) {
-                // Try to get real walking path from OSRM
-                const walkingPolyline = await fetchWalkingPolyline(from[0], from[1], to[0], to[1]);
-                
-                return {
-                    type: 'walk',
-                    from,
-                    to,
-                    polyPoints: walkingPolyline // Can be null, will fallback to straight line
-                };
-            }
-        }
-    }
-        return null;
-    });
-
-    const results = await Promise.all(layerPromises);
-
-    results.forEach(result => {
-        if (!result) return;
-
-        if (result.type === 'ride') {
-            const line = L.polyline(result.polyPoints, { color: result.color, weight: 5, opacity: 0.85 }).addTo(map);
+            const line = L.polyline(polyPoints, { color, weight: 5, opacity: 0.85 }).addTo(map);
             quickPlannerState.layers.push(line);
-            boundsPoints.push(...result.polyPoints);
+            boundsPoints.push(...polyPoints);
             
             // Add markers for ride start/end
-            const startPt = result.polyPoints[0];
-            const endPt = result.polyPoints[result.polyPoints.length - 1];
-            
-            const startMarker = L.circleMarker(startPt, {
-                radius: 5,
-                color: '#ffffff',
-                weight: 2,
-                fillColor: result.color,
-                fillOpacity: 1
-            }).addTo(map);
-            
-            const endMarker = L.circleMarker(endPt, {
-                radius: 5,
-                color: '#ffffff',
-                weight: 2,
-                fillColor: result.color,
-                fillOpacity: 1
-            }).addTo(map);
-            
-            quickPlannerState.layers.push(startMarker, endMarker);
-
-        } else if (result.type === 'walk') {
-            // Use OSRM polyline if available, otherwise straight line
-            const points = result.polyPoints || [result.from, result.to];
-            
-            // Improved walking line style: Distinct dots
-            const walkLine = L.polyline(points, { 
-                color: '#222222', 
-                weight: 5, 
-                dashArray: '0, 10', // 0 length dash + round cap = dot
-                opacity: 0.8, 
-                lineCap: 'round' 
-            }).addTo(map);
-            quickPlannerState.layers.push(walkLine);
-            
-            if (result.polyPoints) {
-                boundsPoints.push(...result.polyPoints);
-            } else {
-                boundsPoints.push(result.from, result.to);
-            }
-
-            // Add small dots at start/end of walk to make it clear
-            [result.from, result.to].forEach(pt => {
-                const dot = L.circleMarker(pt, {
-                    radius: 3,
-                    color: '#555555',
-                    weight: 1,
-                    fillColor: '#ffffff',
+            if (polyPoints.length > 0) {
+                const startPt = polyPoints[0];
+                const endPt = polyPoints[polyPoints.length - 1];
+                
+                const startMarker = L.circleMarker(startPt, {
+                    radius: 5,
+                    color: '#ffffff',
+                    weight: 2,
+                    fillColor: color,
                     fillOpacity: 1
                 }).addTo(map);
-                quickPlannerState.layers.push(dot);
-            });
+                
+                const endMarker = L.circleMarker(endPt, {
+                    radius: 5,
+                    color: '#ffffff',
+                    weight: 2,
+                    fillColor: color,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                quickPlannerState.layers.push(startMarker, endMarker);
+            }
+
+            if (endContext) lastStopContext = endContext;
+            continue;
         }
-    });
+
+        if (segment.type === 'walk') {
+            const from = getSegmentEndpointLatLng(segment.from);
+            const to = getSegmentEndpointLatLng(segment.to);
+            if (from && to) {
+                const walkLine = L.polyline([from, to], { color: '#99a1a8', weight: 4, dashArray: '1, 8', opacity: 0.8, lineCap: 'round' }).addTo(map);
+                quickPlannerState.layers.push(walkLine);
+                boundsPoints.push(from, to);
+                
+                // Add small dots for walk path
+                const walkStart = L.circleMarker(from, { radius: 3, color: 'transparent', fillColor: '#99a1a8', fillOpacity: 0.8 }).addTo(map);
+                const walkEnd = L.circleMarker(to, { radius: 3, color: 'transparent', fillColor: '#99a1a8', fillOpacity: 0.8 }).addTo(map);
+                quickPlannerState.layers.push(walkStart, walkEnd);
+            }
+            const arrivalContext = getStopContextFromEndpoint(segment.to) || getStopContextFromEndpoint(segment.from);
+            if (arrivalContext) {
+                lastStopContext = arrivalContext;
+            }
+        }
+    }
+
+    const origin = quickPlannerState.origin;
+    if (origin) {
+        const originMarker = L.circleMarker([origin.lat, origin.lon], {
+            radius: 6,
+            color: '#34c759',
+            weight: 3,
+            fillColor: '#34c759',
+            fillOpacity: 0.8
+        }).addTo(map);
+        quickPlannerState.layers.push(originMarker);
+        boundsPoints.push([origin.lat, origin.lon]);
+    }
+
+    if (quickPlannerState.destination) {
+        const destMarker = L.circleMarker([quickPlannerState.destination.lat, quickPlannerState.destination.lon], {
+            radius: 6,
+            color: '#ff3b30',
+            weight: 3,
+            fillColor: '#ff3b30',
+            fillOpacity: 0.8
+        }).addTo(map);
+        quickPlannerState.layers.push(destMarker);
+        boundsPoints.push([quickPlannerState.destination.lat, quickPlannerState.destination.lon]);
+    }
 
     if (boundsPoints.length > 0) {
-        // Add a prominent destination marker
-        if (quickPlannerState.destination) {
-            const destLatLng = [quickPlannerState.destination.lat, quickPlannerState.destination.lon];
-            const destMarker = L.marker(destLatLng, {
-                icon: L.divIcon({
-                    className: 'destination-marker-wrapper',
-                    html: '<div class="destination-pin"><i class="fas fa-flag-checkered"></i></div>',
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 36]
-                }),
-                zIndexOffset: 1000
-            }).addTo(map);
-            quickPlannerState.layers.push(destMarker);
-        } else {
-            // Fallback to last point if destination state is missing
-            const lastPoint = boundsPoints[boundsPoints.length - 1];
-            const destMarker = L.marker(lastPoint, {
-                icon: L.divIcon({
-                    className: 'destination-marker-wrapper',
-                    html: '<div class="destination-pin"><i class="fas fa-flag-checkered"></i></div>',
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 36]
-                }),
-                zIndexOffset: 1000
-            }).addTo(map);
-            quickPlannerState.layers.push(destMarker);
-        }
-
-        let paddingBottom = 50;
-        let paddingTop = 50;
-
-        // Adjust padding for UI elements
-        const resultsSheet = document.getElementById('ios-results-sheet');
-        if (resultsSheet && document.body.classList.contains('search-results-active')) {
-             const vh = window.innerHeight;
-             paddingBottom = (vh * 0.45) + 40; // 45% height + buffer
-        }
-        
-        const searchCard = document.querySelector('.ios-search-card');
-        if (searchCard && !document.body.classList.contains('search-card-collapsed')) {
-             paddingTop = searchCard.offsetHeight + 20;
-        }
-
-        map.fitBounds(L.latLngBounds(boundsPoints), { 
-            paddingTopLeft: [50, paddingTop],
-            paddingBottomRight: [50, paddingBottom],
-            maxZoom: 16, 
-            animate: true, 
-            duration: 0.5 
+        const bounds = L.latLngBounds(boundsPoints);
+        // Adjust padding to account for the bottom sheet (approx 40-50% of screen height)
+        // We add significant bottom padding so the route is drawn in the top visible area
+        const bottomPadding = window.innerHeight * 0.45; 
+        map.fitBounds(bounds, { 
+            paddingTopLeft: [20, 20],
+            paddingBottomRight: [20, bottomPadding]
         });
     }
-}
-
-async function fetchWalkingPolyline(fromLat, fromLon, toLat, toLon) {
-    try {
-        // Use our own proxy to avoid CORS and ensure reliability
-        const url = `/api/walking-route?fromLat=${fromLat}&fromLon=${fromLon}&toLat=${toLat}&toLon=${toLon}`;
-        const response = await fetch(url);
-        if (!response.ok) return null;
-        const data = await response.json();
-        if (data.routes && data.routes.length > 0) {
-            // OSRM returns [lon, lat], Leaflet needs [lat, lon]
-            return data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-        }
-    } catch (e) {
-        console.warn('Walking route fetch failed', e);
-    }
-    return null;
 }
 
 
@@ -1231,11 +1110,6 @@ function locateUser() {
 }
 
 function onSelectRoute(e) {
-    const routeId = e.target ? e.target.value : e;
-    applyRouteFilter(routeId);
-}
-
-function applyRouteFilter(routeId) {
     if (isLiveBusViewActive) deactivateLiveBusView(false); 
     
     if (currentStopForSchedulePanel && !previousStopContextForReturn) { 
@@ -1246,14 +1120,7 @@ function applyRouteFilter(routeId) {
         };
     }
 
-    filters.route = routeId || null; 
-    
-    // Update select element if it exists and wasn't the trigger
-    const routeSelect = document.getElementById('route-filter');
-    if (routeSelect && routeSelect.value !== (routeId || '')) {
-        routeSelect.value = routeId || '';
-    }
-
+    filters.route = e.target.value || null; 
     clearPreviousRouteDrawing(); 
     clearQuickPlannerLayers();
     routeStopMarkersLayerGroup.clearLayers(); 
@@ -1278,11 +1145,7 @@ function applyRouteFilter(routeId) {
         }
     }
     updateResetRouteButtonVisibility();
-    updateGlobalBackVisibility();
 }
-
-// Make applyRouteFilter globally available
-window.applyRouteFilter = applyRouteFilter;
 
 function handleResetRoute() {
     updateLiveActivity(null);
@@ -1321,7 +1184,6 @@ function handleResetRoute() {
     previousStopContextForReturn = null; 
     
     updateResetRouteButtonVisibility();
-    updateGlobalBackVisibility();
     map.closePopup();
 }
 function getCoordsFromInput(value, type) {
@@ -1544,18 +1406,7 @@ function drawRouteOption(option) {
     });
     if (polylines.length > 0) {
         currentRoutePolyline = L.polyline(polylines, { color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(), weight: 5 }).addTo(map);
-        
-        // Dynamic padding for old route planner too, just in case
-        let paddingBottom = 50;
-        const resultsSheet = document.getElementById('ios-results-sheet');
-        if (resultsSheet && document.body.classList.contains('search-results-active')) {
-             paddingBottom = (window.innerHeight * 0.45) + 40;
-        }
-        
-        map.fitBounds(currentRoutePolyline.getBounds(), { 
-            paddingTopLeft: [50, 50],
-            paddingBottomRight: [50, paddingBottom]
-        });
+        map.fitBounds(currentRoutePolyline.getBounds(), { padding: [50,50] });
     }
 }
 
@@ -1695,7 +1546,6 @@ function clearAllMapLayersForLiveView(fullClear = true, originStopToPreserve = n
 
 function deactivateLiveBusView(shouldResetContext = true) { 
     isLiveBusViewActive = false; 
-    document.body.classList.remove('live-view-active');
     clearAllMapLayersForLiveView(true); 
     liveViewOriginStopData = null; 
     
@@ -1724,7 +1574,6 @@ function deactivateLiveBusView(shouldResetContext = true) {
         }
     }
     updateResetRouteButtonVisibility();
-    updateGlobalBackVisibility();
     if (shouldResetContext) previousStopContextForReturn = null; 
 }
 
@@ -1917,10 +1766,8 @@ async function showSchedulePanel(stop) {
         schedulePanelTitle.title = `${stop.stop_name || `Stop #${stop.stop_id}`} (ID: ${stop.stop_id})`;
     }
     panel.classList.add('active');
-    panel.classList.add('panel-open'); // Ensure panel-open class is added
     if (typeof closeOtherPanels === 'function') closeOtherPanels('schedule-panel');
     if (typeof updateBodyPanelOpenClass === 'function') updateBodyPanelOpenClass();
-    updateGlobalBackVisibility();
 
     let headerActionsWrapper = panelHeader.querySelector('.header-actions-wrapper');
     if (!headerActionsWrapper) {
@@ -1954,18 +1801,17 @@ async function showSchedulePanel(stop) {
     if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="loading-schedule"><div class="schedule-loading-animation-area"><div class="loading-spinner"></div></div><span>Loading schedule...</span></div>`;
     
     showTopProgressBar();
-    
-    const currentSimTimeUTC = determineSimulationTimeUTC();
-    const scheduleStartTimeUTC = new Date(currentSimTimeUTC.getTime());
-    const scheduleEndTimeUTC = new Date(currentSimTimeUTC.getTime() + 4 * 60 * 60 * 1000); 
-
-    // Используем Unix timestamp (целые числа) вместо ISO строк, чтобы обойти WAF
-    const startTimestamp = scheduleStartTimeUTC.getTime();
-    const endTimestamp = scheduleEndTimeUTC.getTime();
-    
-    const fetchUrl = `${API_BASE}/api/stops/${stop.stop_id}/schedule?usage=long&start=${startTimestamp}&end=${endTimestamp}`;
-
     try {
+        const currentSimTimeUTC = determineSimulationTimeUTC();
+        const scheduleStartTimeUTC = new Date(currentSimTimeUTC.getTime());
+        const scheduleEndTimeUTC = new Date(currentSimTimeUTC.getTime() + 4 * 60 * 60 * 1000); 
+
+        // Используем Unix timestamp (целые числа) вместо ISO строк, чтобы обойти WAF
+        const startTimestamp = scheduleStartTimeUTC.getTime();
+        const endTimestamp = scheduleEndTimeUTC.getTime();
+        
+        const fetchUrl = `${API_BASE}/api/stops/${stop.stop_id}/schedule?usage=long&start=${startTimestamp}&end=${endTimestamp}`;
+        
         const scheduleRes = await fetch(fetchUrl);
 
         if (!panel.classList.contains('active') || !currentStopForSchedulePanel || String(currentStopForSchedulePanel.stop_id) !== String(stop.stop_id)) {
@@ -2092,8 +1938,6 @@ async function showSchedulePanel(stop) {
                         }
                         
                         isLiveBusViewActive = true; 
-                        document.body.classList.add('live-view-active');
-                        updateGlobalBackVisibility();
                         previousRouteFilterStateBeforeLiveView = filters.route; 
                         filters.route = null; 
                         const routeFilterSelect = document.getElementById('route-filter'); 
@@ -2236,70 +2080,17 @@ async function showSchedulePanel(stop) {
                 
                 scheduleCountdownIntervalId = setInterval(updateScheduleCountdown, SCHEDULE_COUNTDOWN_INTERVAL);
             } else {
-                if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule error-message">Stop not in service. <small>(No schedule data found)</small></div>`;
+                if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule error-message">Schedule unavailable. <small>(API error & no GTFS data)</small></div>`;
             }
         } catch (gtfsError) {
             console.error('GTFS fallback also failed:', gtfsError);
-            if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule error-message">Data unavailable. <small>(${e.message})</small></div>`;
+            if(scheduleItemsContainer) scheduleItemsContainer.innerHTML = `<div class="no-schedule error-message">Oops! Couldn't fetch schedule. <small>(${e.message})</small></div>`;
         }
         
         panel.style.maxHeight = ''; 
         _currentPanelApiRouteSchedules = [];
     } finally {
         hideTopProgressBar();
-    }
-}
-
-function closeSchedulePanel() {
-    const panel = document.getElementById('schedule-panel');
-    if (panel) {
-        panel.classList.remove('active');
-        panel.classList.remove('panel-open');
-        panel.style.maxHeight = '';
-    }
-    currentStopForSchedulePanel = null;
-    if (scheduleCountdownIntervalId) clearInterval(scheduleCountdownIntervalId);
-    if (scheduleApiRefreshIntervalId) clearInterval(scheduleApiRefreshIntervalId);
-    
-    if (typeof updateBodyPanelOpenClass === 'function') updateBodyPanelOpenClass();
-    updateGlobalBackVisibility();
-}
-
-// --- Глобальный кнопка "Назад" ---
-
-function updateGlobalBackVisibility() {
-    const backBtn = document.getElementById('ios-global-back-button');
-    if (!backBtn) return;
-
-    const isScheduleOpen = document.getElementById('schedule-panel')?.classList.contains('panel-open');
-    const isRouteSelected = !!filters.route;
-    const isLive = isLiveBusViewActive;
-
-    if (isLive || isRouteSelected || isScheduleOpen) {
-        backBtn.classList.remove('hidden');
-    } else {
-        backBtn.classList.add('hidden');
-    }
-}
-
-function handleGlobalBack() {
-    if (isLiveBusViewActive) {
-        deactivateLiveBusView(true);
-        updateGlobalBackVisibility();
-        return;
-    }
-    
-    const schedulePanel = document.getElementById('schedule-panel');
-    if (schedulePanel && schedulePanel.classList.contains('panel-open')) {
-        closeSchedulePanel();
-        updateGlobalBackVisibility();
-        return;
-    }
-
-    if (filters.route) {
-        handleResetRoute();
-        updateGlobalBackVisibility();
-        return;
     }
 }
 
@@ -2330,17 +2121,11 @@ document.addEventListener('click', function (e) {
         closeRegularNotificationsPanel();
     }
 
-    const routesPanel = document.getElementById('routes-panel');
-    if (routesPanel?.classList.contains('active') && !routesPanel.contains(e.target) && !isDockButtonFor('routes-panel')) closeRoutesPanel();
-
-    const settingsPanel = document.getElementById('settings-panel');
-    if (settingsPanel?.classList.contains('active') && !settingsPanel.contains(e.target) && !isDockButtonFor('settings-panel')) closeSettingsPanel();
-
 });
 
 
 // --- Запуск приложения ---
 window.addEventListener('DOMContentLoaded', () => {
     initMap(); 
-    // startSmoothBusAnimationLoop is called inside initMap, no need to call it twice
+    startSmoothBusAnimationLoop(); 
 });
